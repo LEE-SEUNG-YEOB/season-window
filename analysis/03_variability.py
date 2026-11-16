@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import config as C
 
-MIN_YEARS = 8
+MIN_YEARS = C.MIN_YEARS
 rng = np.random.default_rng(20261117)
 s = pd.read_csv(C.INTERIM / "phenology_site_year.csv")
 

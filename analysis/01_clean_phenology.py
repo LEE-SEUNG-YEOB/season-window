@@ -68,9 +68,16 @@ df = df.join(med, on="관측자")
 df["중앙거리_km"] = np.hypot(
     (df["위도"] - df["중앙위도"]) * 111.0,
     (df["경도"] - df["중앙경도"]) * 111.0 * np.cos(np.radians(df["위도"])))
-m = df["중앙거리_km"] > C.MAX_KM_FROM_SITE
-df = drop(df, m, f"좌표가 수목원 중앙에서 {C.MAX_KM_FROM_SITE:.0f}km 이상")
+far = df["중앙거리_km"] > C.MAX_KM_FROM_SITE
+accept = pd.Series([(a, b) in C.COORD_ACCEPT for a, b in zip(df["관측자"], df["종명"])], index=df.index)
+df["좌표오류보정"] = far & accept          # 좌표 입력 오류로 보고 수목원 안의 나무로 취급
+m = far & ~accept
+df = drop(df, m, f"좌표가 수목원 중앙에서 {C.MAX_KM_FROM_SITE:.0f}km 이상이고 위치를 확인할 수 없음")
 log("좌표 의심 줄 제거", len(df), int(m.sum()), "줄")
+log("(참고) 좌표 입력 오류로 보고 유지한 줄", len(df), int(df["좌표오류보정"].sum()), "줄")
+
+# 수목원별 그해 첫 관측일 (전시원 기록 전체 기준)
+first_day = df.groupby(["관측자", "연도"])["관측일"].min().dt.dayofyear.rename("첫관측일")
 
 # 6. 긴 형태: 한 줄 = 나무 x 날짜 x 단계 --------------------------------
 df["날짜숫자"] = df["관측일"].dt.dayofyear
@@ -112,20 +119,26 @@ g = long.groupby(["수목원", "종", "현상"])["날짜숫자"]
 long["중앙값차"] = long["날짜숫자"] - g.transform("median")
 long["이상치의심"] = long["중앙값차"].abs() > C.OUTLIER_DAYS
 
+# 10-1. 첫 관측일 기록 표시 (삭제하지 않음) ------------------------------
+long = long.join(first_day, on=["수목원", "연도"])
+long["첫관측일기록"] = long["현상"].isin(C.CENSOR_STAGES) & \
+    (long["날짜숫자"] <= long["첫관측일"] + C.CENSOR_WINDOW_DAYS)
+
 long["종구분"] = long["종"].map(C.species_group)
 tree = long[["연도", "수목원", "종", "종구분", "나무번호", "구분", "현상", "관측일", "날짜숫자",
-             "순서오류", "이상치의심"]].sort_values(["수목원", "종", "나무번호", "연도", "날짜숫자"])
+             "순서오류", "이상치의심", "첫관측일기록"]].sort_values(["수목원", "종", "나무번호", "연도", "날짜숫자"])
 tree["관측일"] = tree["관측일"].dt.strftime("%Y-%m-%d")
 log("나무 단위 정제본", len(tree), 0, "기록")
 
-# 11. 수목원 단위 대표값: 순서 오류를 뺀 나무들의 중앙값 -----------------
-ok = tree[~tree["순서오류"]]
+# 11. 수목원 단위 대표값: 순서 오류와 첫 관측일 기록을 뺀 나무들의 중앙값 --
+ok = tree[~tree["순서오류"] & ~tree["첫관측일기록"]]
 site = ok.groupby(["연도", "수목원", "종", "현상"]).agg(
     날짜숫자=("날짜숫자", "median"), 나무수=("나무번호", "nunique"),
     이상치의심=("이상치의심", "any")).reset_index()
 site["종구분"] = site["종"].map(C.species_group)
 site = site[["연도", "수목원", "종", "현상", "날짜숫자", "나무수", "종구분", "이상치의심"]]
-log("수목원 단위 대표값 (순서 오류 제외, 나무 중앙값)", len(site), int(tree["순서오류"].sum()), "기록")
+log("수목원 단위 대표값 (순서 오류·첫 관측일 기록 제외, 나무 중앙값)", len(site),
+    int((tree["순서오류"] | tree["첫관측일기록"]).sum()), "기록")
 
 # 저장 ------------------------------------------------------------------
 C.INTERIM.mkdir(parents=True, exist_ok=True)
@@ -139,7 +152,9 @@ pd.DataFrame(pair_counts).to_csv(C.TABLES / "cleaning_order_errors.csv", index=F
 
 print(pd.DataFrame(steps).to_string(index=False))
 print(pd.DataFrame(pair_counts).to_string(index=False))
-print("이상치 의심:", int(tree["이상치의심"].sum()), "/ 순서오류 표시:", int(tree["순서오류"].sum()))
+print("이상치 의심:", int(tree["이상치의심"].sum()), "/ 순서오류 표시:", int(tree["순서오류"].sum()),
+      "/ 첫 관측일 기록:", int(tree["첫관측일기록"].sum()))
+print(tree[tree["첫관측일기록"]].groupby(["수목원", "연도"]).size().to_string())
 print(rem["제외사유"].value_counts().to_string())
 
 # 개화시작이 빠진 경우 현황
