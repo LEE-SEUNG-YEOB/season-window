@@ -1,11 +1,4 @@
-# 1단계는 기상 변수 파일을 만든다(수목원 x 연도 170줄)
-#
-# 기본 파일은 대구 지점을 새 자리 기준으로 맞춘 값이다
-# 이것은 설정의 대구 보정 스위치로 정한다
-# 맞추지 않은 원값 파일을 함께 만든다(민감도 줄에 쓴다)
-# 금산 지점 단차는 고치지 않고 대아수목원 2025년 줄에 기상주의 표시만 단다
-# 끝에 누출 점검을 돌린다
-# 기준일 뒤 기온을 999로 바꿔도 변수가 그대로인지 본다
+# 1단계 일자료로 수목원 x 연도 기상 변수 표 생성과 누출 점검
 
 import sys
 sys.dont_write_bytecode = True
@@ -17,27 +10,26 @@ import pandas as pd
 import features as F
 import mconfig as C
 
-
 def main():
     print("자료판:", C.mode())
-    daily, src = F.load_daily()
+    daily, src = F.weather()
     print("기상 일자료:", src, "|", daily["지점"].nunique(), "지점", len(daily), "줄",
           daily["일시"].min().date(), "~", daily["일시"].max().date())
 
-    # A의 정제본과 공개 기온이 둘 다 있으면 평균기온이 같은지 본다
+    # A의 정제본과 공개 기온이 둘 다 있으면 평균기온이 같은지 확인
     if C.WEATHER.exists() and C.PUBLIC_TA.exists():
-        pub = pd.read_csv(C.PUBLIC_TA, usecols=["지점", "일시", "평균기온"], parse_dates=["일시"])
-        j = daily.merge(pub, on=["지점", "일시"], suffixes=("", "_공개")).dropna(subset=["평균기온", "평균기온_공개"])
-        gap = (j["평균기온"] - j["평균기온_공개"]).abs()
+        pub = pd.read_csv(C.PUBLIC_TA, usecols=["지점", "일시", F.TEMP], parse_dates=["일시"])
+        j = daily.merge(pub, on=["지점", "일시"], suffixes=("", "_공개")).dropna(subset=[F.TEMP, F.TEMP + "_공개"])
+        gap = (j[F.TEMP] - j[F.TEMP + "_공개"]).abs()
         print(f"정제본과 공개 기온 비교: 겹친 {len(j)}일, 0.05도 넘게 다른 날 {(gap > 0.05).sum()}일, 최대 {gap.max():.2f}도")
 
-    raw = F.site_year_table(daily, adjusted=False)
-    adj_daily, info = F.daegu_adjust(daily)
-    adj = F.site_year_table(adj_daily, adjusted=True)
+    raw = F.table(daily, adjusted=False)
+    adj_daily, info = F.correction(daily)
+    adj = F.table(adj_daily, adjusted=True)
     print("대구 보정:", info)
 
     main_tab, other = (adj, raw) if C.DAEGU_ADJUST else (raw, adj)
-    out = C.out_dir("features")
+    out = C.folder("features")
     main_path = out / C.FEATURES.name
     other_path = out / (C.FEATURES_RAW.name if C.DAEGU_ADJUST else "weather_features_daegu_adj.csv")
     main_tab.to_csv(main_path, index=False, encoding="utf-8-sig")
@@ -62,12 +54,11 @@ def main():
         print("!! 보정이 대구 2015년 이전 밖을 건드렸다"); ok = False
     print("기상주의 줄:", main_tab.loc[main_tab["기상주의"], ["수목원", "연도"]].values.tolist())
 
-    bad = F.leak_test_999(adj_daily)
+    bad = F.leak(adj_daily)
     print("누출 점검(기준일 뒤 999):", "통과" if bad == 0 else f"실패 {bad}칸")
     ok = ok and bad == 0
     if not ok:
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

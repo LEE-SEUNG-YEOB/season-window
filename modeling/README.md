@@ -28,15 +28,17 @@ B 담당 코드다
 저장소 맨 위에서 차례로 돌린다
 
 ```bash
-python3 modeling/01_weather.py
-python3 modeling/02_dataset.py
-python3 modeling/03_baseline.py
-python3 modeling/04_validation.py
-python3 modeling/05_slopes.py
-python3 modeling/06_service.py
+python3 modeling/weather.py
+python3 modeling/dataset.py
+python3 modeling/baseline.py
+python3 modeling/validation.py
+python3 modeling/slopes.py
+python3 modeling/service.py
 python3 modeling/tests.py
 ```
 
+- 파일 이름에 번호가 없으니 위 순서를 지킨다(1단계 weather부터 6단계 service까지)
+- 이 문서의 1단계~6단계는 이 순서를 가리킨다
 - Python 3.11과 pandas numpy scipy scikit-learn(4단계 랜덤포레스트)을 쓴다
 - 함수 파일 `season_functions.py`는 pandas만 쓴다
 - 대부분 몇 초 안에 끝난다
@@ -45,19 +47,52 @@ python3 modeling/tests.py
 - 집계표 판에서는 안내만 하고 끝난다
 - `tests.py`는 실패가 하나라도 있으면 끝 코드 1을 돌려준다
 
+### 모듈 계층
+
+| 층 | 파일 | 불러 쓰는 우리 모듈 |
+|---|---|---|
+| 설정 | `mconfig.py` | 없음 |
+| 변수 | `features.py` | mconfig |
+| 모델 | `models.py` | features mconfig |
+| 단계 | `weather.py` `dataset.py` | features mconfig |
+| 단계 | `baseline.py` `validation.py` `slopes.py` `service.py` | models mconfig |
+| 기능 | `season_functions.py` | 없음 |
+| 점검 | `tests.py` | season_functions |
+
+- 의존은 한 방향이다(단계 → 모델 → 변수 → 설정)
+- 단계 파일끼리는 서로 부르지 않고 앞 단계가 쓴 파일만 읽는다
+- 기능 함수는 파이프라인 모듈을 부르지 않고 표만 읽는다(`reference/station_map.csv`와 서비스 표 없으면 `reports/tables`의 집계표)
+- 단계 파일은 저마다 `main` 하나로 들어간다
+
 ## 3. 단계별 출력
 
 | 단계 | 하는 일 | 출력(정제본 판) | 저장소에 |
 |---|---|---|---|
-| 01 | 기상 변수(10곳 x 17해 = 170줄) 대구 보정 누출 점검 | `data/processed/weather_features.csv` `weather_features_daegu_raw.csv`(보정 전 원값) | 안 올림 |
-| 02 | 학습 표<br>봄꽃 11종 개화50%이상과 단풍 5종 단풍50%이상 8년 이상 조합 | `data/processed/training_table.csv` | 안 올림 |
-| 03 | M0와 M0r 검증<br>최근 5년 보정을 쓸지 정한다 | `data/processed/models/` 중간 파일 3개 | 안 올림 |
-| 04 | M1과 RF 검증 자료판 민감도 누출 점검<br>3단계 결과와 합친다 | `reports/tables/model_comparison.csv` `model_cv_by_year.csv` `model_decision.csv` | 올림 |
-| 05 | 종별 기온 기울기와 가정 입력 기울기 | `reports/tables/model_species_slope.csv` | 올림 |
-| 06 | 함수가 읽을 서비스 표 8개<br>끝에 A의 집계표와 견준다 | `data/processed/service/` | 안 올림 |
+| 1 `weather.py` | 기상 변수(10곳 x 17해 = 170줄) 대구 보정 누출 점검 | `data/processed/weather_features.csv` `weather_features_daegu_raw.csv`(보정 전 원값) | 안 올림 |
+| 2 `dataset.py` | 학습 표<br>봄꽃 11종 개화50%이상과 단풍 5종 단풍50%이상 8년 이상 조합 | `data/processed/training_table.csv` | 안 올림 |
+| 3 `baseline.py` | M0와 M0r 검증<br>최근 5년 보정을 쓸지 정한다 | `data/processed/models/` 중간 파일 3개 | 안 올림 |
+| 4 `validation.py` | M1과 RF 검증 자료판 민감도 누출 점검<br>3단계 결과와 합친다 | `reports/tables/model_comparison.csv` `model_cv_by_year.csv` `model_decision.csv` | 올림 |
+| 5 `slopes.py` | 종별 기온 기울기와 가정 입력 기울기 | `reports/tables/model_species_slope.csv` | 올림 |
+| 6 `service.py` | 함수가 읽을 서비스 표 8개<br>끝에 A의 집계표와 견준다 | `data/processed/service/` | 안 올림 |
 
 - 4단계는 줄 단위 예측(`predictions.csv`)과 fold별 기울기(`fold_slopes.csv`)도 `data/processed/models/`에 남긴다
 - 집계표 판에서는 모든 출력이 `data/processed/preview`로 간다
+
+### 서비스 표 8개
+
+| 파일 | 내용 | 쓰는 곳 |
+|---|---|---|
+| `combo_stats.csv` | 수목원 x 종 x 단계의 관측연수와 평균과 표준편차 | 범위와 분포 근사 |
+| `history.csv` | 해별 날짜 | 기능 1의 history와 그해 실제 날짜숫자 |
+| `bloom_pairs.csv` | 개화시작과 낙화가 함께 있는 해 | 기능 2와 3의 지난 해 세기 |
+| `gaps.csv` | 개화시작~개화50%이상 간격과 꽃 시기 길이의 중앙값(조합별과 종별) | 꽃 시기 계산 |
+| `shift.csv` | 전국 최근 5년 편차 | M0r |
+| `decision.csv` | 고르는 규칙의 판정과 가정 입력 기울기 | 채택 여부와 기온 가정 |
+| `m1.csv` `m1_inputs.csv` | M1 계수와 수목원 해별 입력 | M1이 채택됐을 때만 |
+
+- 정제본이 있을 때만 만든다
+- 정의는 A의 집계와 같다
+- 개화기간은 낙화90~100%에서 개화시작을 뺀 값이고 0보다 큰 해만 쓴다
 
 ### 재배포 주의
 
@@ -157,7 +192,10 @@ python3 modeling/tests.py
 - 누적온도_5도_2월말은 추운 곳에서 0인 해가 많다(17해 중 춘천 9해 동두천 7해 보은 4해 금산 3해)
 - 변수 파일에는 넣지만 M1 입력으로는 쓰지 않는다
 - 강수와 일조를 M1에 넣지 않은 것은 효과가 없어서가 아니라 넣지 않기로 정한 것이다
-- `weather_daily.csv`까지 받아 랜덤포레스트 넓은 입력 줄을 돌리면 그 결과로 이 문장을 고친다
+- `weather_daily.csv`를 넣고 강수와 일조까지 든 여섯 변수로 돌린 랜덤포레스트 넓은 입력도 채택되지 않았다
+  - 한 해씩 빼기 2월 말의 평균 오차는 5.03일이고 M0는 5.18일 M1(기온_2월)은 4.95일이다
+  - M1보다 0.08일 높았고 나은 해는 17해 중 9해였으며 차이의 95% 범위는 -0.45~0.60일이다
+  - 강수와 일조를 빼고 돌렸을 때의 5.14일보다는 0.11일 낮아졌지만 M1을 넘지는 못했다
 
 ## 6. 모델과 고르는 규칙
 
@@ -170,6 +208,8 @@ python3 modeling/tests.py
 
 - 목표는 봄꽃 11종의 개화50%이상이다(8년 이상 조합 91개 1,311줄)
 - 단풍은 단풍 5종의 단풍50%이상(19개 조합 224줄)으로 M0와 M0r만 견준다
+- 이상치의심은 표시로만 옮기고 빼지 않는다(A와 같은 처리)
+- 집계표 판의 학습 표는 A의 수목원 연도 효과 표와 전국 연도 편차 표로 만든다
 - 검증
   - 한 해씩 빼기(주): 한 해를 통째로 빼고 나머지로 학습한다
   - 17번
@@ -189,6 +229,9 @@ python3 modeling/tests.py
 - 예측 범위는 예측값 ± t x 표준편차 x √(1 + 1/n)이다
 - 기본은 80%다
 - 기온 가정(temp_scenario)에 쓰는 기울기는 5단계에서 낸 기온_2_3월 전체 기울기(일/도)다
+  - M1과 같은 식을 전체 해에 맞춘 값이다
+  - 표준오차는 조합 수만큼 자유도를 뺀 잔차로 낸다
+  - 종별 기울기는 해 수가 적어 참고로만 본다
 
 ## 7. 기능 함수(season_functions.py)
 
@@ -198,12 +241,15 @@ python3 modeling/tests.py
 
 | 함수 | 쓰임 |
 |---|---|
-| `list_sites()` | 지도에 찍을 10곳 |
-| `list_species(site, phenomenon)` | 그 수목원에서 고를 수 있는 종 |
-| `predict_date(...)` | 기능 1: 개화일 예측과 범위 |
-| `festival_overlap(...)` | 기능 2: 축제 기간과 꽃 시기가 겹칠 가능성 |
-| `recommend_species(...)` | 기능 3: 축제 기간에 맞는 종 추천 |
+| `sites()` | 지도에 찍을 10곳 |
+| `catalog(site, phenomenon)` | 그 수목원에서 고를 수 있는 종 |
+| `forecast(...)` | 기능 1: 개화일 예측과 범위 |
+| `overlap(...)` | 기능 2: 축제 기간과 꽃 시기가 겹칠 가능성 |
+| `ranking(...)` | 기능 3: 축제 기간에 맞는 종 추천 |
 
+- 옛 이름(`list_sites` `list_species` `predict_date` `festival_overlap` `recommend_species`)도 같은 함수를 가리키는 별칭으로 파일 끝에 남겨 두었다
+- 그래서 화면 코드는 고치지 않아도 그대로 돈다
+- 저장소 어느 폴더에 두어도 위로 올라가며 `reports/tables`와 `reference`가 있는 곳을 찾아 돈다
 - `data/processed/service`에 표 6개(combo_stats history bloom_pairs gaps shift decision)가 다 있으면 정제본 판 아니면 집계표(임시) 판이다
 - 반환값의 source로 알 수 있다
 - m1과 m1_inputs는 M1이 채택됐을 때만 쓴다
@@ -218,11 +264,11 @@ python3 modeling/tests.py
 - 화면 쪽에서 확인할 것
   - INTERNAL_ERROR: 예상하지 못한 오류가 나도 화면이 멈추지 않게 이 코드로 돌려준다
   - 처음 정한 목록에 없던 코드다
-  - `recommend_species`의 순위표에 최근5년_겹침 열을 더했다(정제본 판 "5해 중 4해" 꼴)
+  - `ranking`의 순위표에 최근5년_겹침 열을 더했다(정제본 판 "5해 중 4해" 꼴)
   - 참고 열이고 순위에는 쓰지 않는다
-  - NO_CANDIDATE: `recommend_species`는 후보가 하나도 없을 때뿐 아니라 모든 후보의 적합도가 0일 때(12월처럼 꽃 철이 아닌 기간 너무 큰 겹침 기준 일수)도 이 코드로 답한다
+  - NO_CANDIDATE: `ranking`은 후보가 하나도 없을 때뿐 아니라 모든 후보의 적합도가 0일 때(12월처럼 꽃 철이 아닌 기간 너무 큰 겹침 기준 일수)도 이 코드로 답한다
   - 적합도 0인 순위표는 돌려주지 않는다
-  - BAD_DATE: `festival_overlap`과 `recommend_species`의 날짜는 `predict_date`의 연도와 같이 2009~2030년만 받는다
+  - BAD_DATE: `overlap`과 `ranking`의 날짜는 `forecast`의 연도와 같이 2009~2030년만 받는다
   - 범위 밖이면 이 코드로 답한다
   - 이름(수목원 종 현상 lead)은 맥에서 복사해 자모가 풀린 한글(NFD)로 와도 받는다
   - 반환값에는 모은 꼴(NFC)로 적는다
@@ -236,7 +282,7 @@ python3 modeling/tests.py
 - lead는 계획 2월 말 시나리오 중 하나다
   - 기온 가정(temp_scenario)을 주면 lead와 상관없이 시나리오로 답한다(단풍은 기온 가정을 반영하지 않는다)
   - lead="시나리오"인데 기온 가정이 없으면 계획 값으로 답하고 경고를 단다
-  - `festival_overlap`은 2월 말 예측을 쓰지 않는다
+  - `overlap`은 2월 말 예측을 쓰지 않는다
   - lead="2월 말"이면 계획 값으로 답하고 경고를 단다
   - 목록에 없는 값이면 계획 값으로 답하고 경고를 단다
 
@@ -247,15 +293,28 @@ python3 modeling/tests.py
 - 조합 통계가 A의 표와 같으면 하루_적중률 다시 세기와 8년 이상 조합 목록이 어긋날 때 실패로 센다
 - 조합 통계가 다르면 참고로만 적는다
 
-## 9. 정제본이 오면 확인할 것 (시간상 현재 건너뜀)
+## 9. 정제본으로 확인한 것 (2026-11-20)
+
+원본 20개를 받아 A의 `01_clean_phenology.py`를 저장소 밖 복사본에서 돌려 만든 정제본으로 확인했다
+기상 원본(ASOS 일자료 2개)도 받아 A의 `02_weather_and_stations.py`를 저장소 밖 복사본에서 돌려 `weather_daily.csv`를 만들었고 이것까지 넣어 다시 확인했다
+복사본이 만든 표 세 개(`reference/station_map.csv` `reports/tables/station_distance.csv` `reports/tables/weather_missing.csv`)는 저장소의 추적 파일과 글자까지 같았다
 
 1. 1단계: 정제본 기온과 공개 기온의 비교 줄(`weather_daily.csv`가 있을 때만 나온다) 대구 보정의 겹친 날 610일과 평균 차이 -0.95도 근처 누출 점검 통과
+   - 결과: 비교 줄은 겹친 62351일 가운데 0.05도 넘게 다른 날 1일에 최대 차이 0.10도였다
+   - 대구 보정은 겹친 날 610일에 평균 차이 -0.952도였고 누출 점검은 통과였다
 2. 2단계: "설계서 숫자와 비교(개화)"가 같음(91개 조합 1,311줄)
    - 단풍은 19개 조합 224줄
    - 2단계가 적는 "개화시작과 낙화가 함께 8년 이상인 조합"은 학습표 안(개화50%이상이 있는 해)에서 센 값이다
    - A의 87개 조합 1,096해(`eda_fixed_day_hit.csv`)는 개화기간이 0보다 큰 해를 모두 센 값이라 정의가 다르다
+   - 결과: 개화 91개 조합 1,311줄로 설계서와 같았고 단풍은 19개 조합 224줄이었다
 3. 6단계: 끝의 A 집계표 비교에 다른 곳이 0개여야 한다
    - 다르면 정제본 판이 A가 집계에 쓴 판과 같은지 먼저 본다
+   - 결과: 다른 곳 0개였다(조합 통계 361개는 평균과 표준편차 차이가 최대 0.005이고 8년 이상 조합은 87개로 A와 같다)
 4. `tests.py`: 실패 0개이고 "8년 이상 조합"이 87개 1,096해
+   - 결과: 통과 4118개 실패 0개 8년 이상 조합 87개 1,096해
+   - `하루_적중률`은 87개 중 4개 조합이 A의 표와 한 해 몫만큼 다르다(2012년 1개와 2024년 3개)
+   - A는 날짜숫자를 고정하고 함수는 달과 날을 고정해서 윤년에 하루가 밀리기 때문이다
 5. 4단계의 랜덤포레스트 넓은 입력 줄 결과로 5절 마지막 문장(강수와 일조)을 고친다
-   - `weather_daily.csv` 없이 돌았으면 넓은 입력에 강수와 일조가 빠져 있으니 이 문장은 그대로 둔다
+   - 결과: 넓은 입력이 여섯 변수로 돌았고 평균 오차 5.03일로 M1보다 0.08일 높아 기각이었다
+   - 4단계의 세 표에서 달라진 것은 넓은 입력 줄뿐이다(비교표 9줄 해별표 63줄 채택표 1줄)
+   - 서비스 표 8개와 `model_species_slope.csv`는 그대로였다

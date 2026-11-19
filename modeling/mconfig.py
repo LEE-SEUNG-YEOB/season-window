@@ -1,11 +1,4 @@
-# B 파이프라인 공통 설정이다
-# 경로와 기간과 종 목록을 둔다
-# 기상 지점 사건과 모델 입력과 고르는 규칙도 둔다
-#
-# 정제본(data/interim)이 있으면 정제본으로 돌고 결과를 정해진 자리에 쓴다
-# 없으면 A의 집계표와 공개 기온으로 미리 돌린다
-# 이때 결과는 data/processed/preview에만 쓴다
-# 점검할 때는 환경변수로 저장소 위치를 바꿀 수 있다
+# 설정 모듈 경로와 종 목록과 모델 검증 기준 정의
 
 import os
 from pathlib import Path
@@ -23,12 +16,12 @@ TABLES = ROOT / "reports" / "tables"
 # 입력
 PHENO_SITE = INTERIM / "phenology_site_year.csv"
 WEATHER = INTERIM / "weather_daily.csv"
-PUBLIC_TA = EXTERNAL / "kma_ta_daily.csv"        # 연결 지점 10곳 하루 평균기온(공개 자료)
-PUBLIC_TA176 = EXTERNAL / "kma_ta176_daily.csv"  # 대구 새 자리 임시 지점 176
+PUBLIC_TA = EXTERNAL / "kma_ta_daily.csv" # 연결 지점 10곳 하루 평균기온(공개 자료)
+PUBLIC_TA176 = EXTERNAL / "kma_ta176_daily.csv" # 대구 새 자리 임시 지점 176
 STATION_MAP = REFERENCE / "station_map.csv"
 
 # 출력(정제본일 때)
-# 줄 단위 관측이 든 파일은 data/processed 아래에만 둔다
+# 줄 단위 관측 파일은 data/processed 아래에만 저장
 FEATURES = PROCESSED / "weather_features.csv"
 FEATURES_RAW = PROCESSED / "weather_features_daegu_raw.csv"
 TRAIN = PROCESSED / "training_table.csv"
@@ -36,33 +29,26 @@ MODELS = PROCESSED / "models"
 SERVICE = PROCESSED / "service"
 PREVIEW = PROCESSED / "preview"
 
-
-# 식물계절 정제본 파일이 있으면 정제본을 돌려준다
-# 기상 정제본 파일은 없어도 된다
-# 그때는 공개 기온을 쓰고 강수와 일조는 비운다
-# 식물계절 정제본 파일이 없으면 집계표를 돌려준다
+# 식물계절 정제본 파일이 있으면 정제본 반환
+# 기상 정제본 파일은 없어도 진행
+# 그때는 공개 기온 사용 강수와 일조는 비움
+# 식물계절 정제본 파일이 없으면 집계표 반환
 def mode():
     return "정제본" if PHENO_SITE.exists() else "집계표"
 
-
-# 결과를 쓸 폴더를 돌려준다
-# features는 줄 단위 변수를 쓸 곳이다
-# tables는 올리는 집계표를 쓸 곳이다
-# work는 학습 표와 모델을 쓸 곳이다
-def out_dir(kind):
-    if mode() == "집계표":
-        PREVIEW.mkdir(parents=True, exist_ok=True)
-        return PREVIEW
-    d = {"features": PROCESSED, "tables": TABLES, "work": PROCESSED}[kind]
+# 결과 폴더 반환
+# features는 줄 단위 변수 저장 위치
+# tables는 올리는 집계표 저장 위치
+# work는 학습 표와 모델 저장 위치
+def folder(kind):
+    d = PREVIEW if mode() == "집계표" else {"features": PROCESSED, "tables": TABLES, "work": PROCESSED}[kind]
     d.mkdir(parents=True, exist_ok=True)
     return d
 
-
-# 수목원마다 연결한 기상지점 표를 돌려준다
+# 수목원별 연결 기상지점 표 반환
 def stations():
     m = pd.read_csv(STATION_MAP)
     return m[["수목원", "기상지점", "기상지점명"]].copy()
-
 
 YEARS = list(range(2009, 2026))
 SEED = 20261119
@@ -85,20 +71,20 @@ GDD_BASE = 5.0
 USABLE_FEB_END = ["기온_12월", "기온_1월", "기온_2월", "기온_1_2월", "기온_겨울_2월말",
                   "강수_1_2월", "일조_1_2월", "누적온도_5도_2월말"]
 
-# 대구(143)는 2015년 6월 11일까지 옛 자리(신암동) 값이다
-# 새 자리 임시 지점 176의 자료는 2013년 10월 10일부터 2015년 6월 11일까지다
+# 대구(143)는 2015년 6월 11일까지 옛 자리(신암동) 값
+# 새 자리 임시 지점 176 자료는 2013년 10월 10일부터 2015년 6월 11일까지
 DAEGU = {
     "site": "대구수목원", "old": 143, "new": 176,
     "T0": "2013-10-10", "T1": "2015-06-11",
-    # 겹친 610일로 구한 달별 차이다(새 자리 값에서 옛 자리 값을 뺀 것)
-    # 176 파일이 없을 때만 쓴다
+    # 겹친 610일로 구한 달별 차이(새 자리 - 옛 자리)
+    # 176 파일이 없을 때만 사용
     "month_diff": {1: -0.97, 2: -0.87, 3: -0.94, 4: -1.00, 5: -1.03, 6: -1.02,
                    7: -0.83, 8: -0.87, 9: -1.10, 10: -1.01, 11: -0.94, 12: -0.85},
 }
 DAEGU_ADJUST = True
 
-# 기록에 남길 지점 사건이다
-# 대구만 고치고 나머지는 표시만 하거나 설명서에 적는다
+# 기록에 남길 지점 사건
+# 대구만 보정하고 나머지는 표시 또는 설명서 기재
 STATION_EVENTS = [
     {"지점": 143, "지점명": "대구", "날짜": "2015-06-12", "크기_도": -0.95, "처리": "보정",
      "내용": "기록이 새 자리(효목동) 값으로 바뀐 날. 그 앞은 새 자리 기준으로 맞춘다"},
@@ -124,18 +110,18 @@ RECENT_N = 5
 BOOT_N = 4000
 INTERVAL_LEVEL = 0.8
 CLOSE_DAYS = 7
-FORWARD_MIN_TRAIN = 3   # 앞으로 가는 검증에서 조합 평균을 내려면 학습 해가 이만큼은 있어야 한다
+FORWARD_MIN_TRAIN = 3 # 앞으로 가는 검증의 조합 평균에 필요한 최소 학습 해 수
 
-# 고르는 규칙이다
-# 결과를 보기 전에 정했다(5절 4항)
+# 채택 규칙
+# 결과를 보기 전에 확정(5절 4항)
 RULE_MAE = 0.5
-RULE_WINS_LOYO = 13      # 한 해씩 빼고 검증한 17해 중
-RULE_WINS_FORWARD = 9    # 앞으로 가는 검증의 11해 중
+RULE_WINS_LOYO = 13 # 한 해씩 빼기 검증 17해 중
+RULE_WINS_FORWARD = 9 # 앞으로 가는 검증 11해 중
 
-# 집계표 판에서 빼는 세 점이다
-# A의 수목원 연도 효과 표에서 종이 적어 A가 뺀 점이다
+# 집계표 판에서 빼는 세 점
+# A의 수목원 연도 효과 표에서 종이 적어 A가 뺀 점
 AGG_DROP = [("경남수목원", 2021), ("금강수목원", 2014), ("대아수목원", 2009)]
 
-# 기준일의 이름과 날짜(월과 일)다
-# 그날까지의 기온만 쓴다
+# 기준일 이름과 날짜(월과 일)
+# 그날까지의 기온만 사용
 REF_DATES = {"2월 말": None, "3월 15일": (3, 15), "3월 31일": (3, 31)}
