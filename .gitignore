@@ -40,3 +40,6 @@ desktop.ini
 ~$*
 .vscode/
 .idea/
+
+# 내부 시연 빌드 산출물
+/service/offline/outputs/

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Season Window — 식물계절 관측</title>
+<style>
+* { box-sizing: border-box; }
+:root {
+  --main: #b75016;
+  --soft: #fbe5d3;
+  --bg: #fff8f1;
+  --border: #ebd5c3;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: #26352f;
+  font-family: "맑은 고딕", sans-serif;
+}
+body.review {
+  --main: #a94364;
+  --soft: #f3dce4;
+  --bg: #fff7f9;
+  --border: #e9ced8;
+}
+body.analysis {
+  --main: #246b50;
+  --soft: #e8efe5;
+  --bg: #f5f7f2;
+  --border: #d7e2d4;
+}
+main { max-width: 1280px; margin: auto; padding: 28px; }
+header {
+  display: flex; align-items: center; gap: 14px;
+  padding-bottom: 22px; border-bottom: 1px solid var(--border);
+}
+.logo { color: var(--main); font-size: 46px; }
+h1 { margin: 0; font-size: 30px; }
+small, .muted { color: #69776e; line-height: 1.7; }
+.badge {
+  margin-left: auto; background: var(--soft);
+  padding: 8px 14px; border-radius: 30px; font-size: 12px;
+}
+nav { display: flex; gap: 10px; margin: 22px 0; }
+button {
+  padding: 12px 18px; border: 1px solid var(--border);
+  border-radius: 8px; background: white;
+  color: var(--main); cursor: pointer; font: inherit;
+}
+button.active { background: var(--main); color: white; }
+button:disabled { cursor: default; color: #788278; opacity: .6; }
+.notice {
+  padding: 15px; background: var(--soft);
+  border-left: 4px solid var(--main); line-height: 1.7;
+}
+h2 { font-size: 30px; letter-spacing: -1px; margin-bottom: 10px; }
+h3 { font-size: 19px; }
+.filters {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 14px; margin: 25px 0;
+}
+label { display: block; font-size: 13px; margin-bottom: 8px; }
+select, input {
+  width: 100%; padding: 12px; background: white;
+  border: 1px solid var(--border); border-radius: 7px;
+  color: #26352f; font: inherit;
+}
+select:focus, input:focus, button:focus-visible {
+  outline: 2px solid var(--main); outline-offset: 2px;
+}
+.hero { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; }
+.mapbox {
+  height: 480px; background: var(--soft);
+  border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden;
+}
+iframe { width: 100%; height: 100%; border: 0; }
+.panel, .card, .chart, details {
+  background: white; border: 1px solid var(--border);
+  border-radius: 12px; padding: 22px;
+}
+.panel h3 { margin-top: 8px; }
+.status {
+  display: inline-block; padding: 6px 12px;
+  border-radius: 20px; background: var(--soft);
+  color: var(--main); font-size: 12px;
+}
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.dates { margin: 16px 0; }
+.value { font-size: 34px; color: var(--main); margin: 15px 0; }
+.metrics {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; margin: 24px 0;
+}
+.card { border-top: 3px solid var(--main); }
+.chart { margin: 20px 0; }
+.plot {
+  position: relative; height: 230px; margin: 25px 0 15px;
+  border-left: 1px solid #ccd5ce;
+  border-bottom: 1px solid #ccd5ce;
+  background: repeating-linear-gradient(
+    to top, transparent 0, transparent 56px, #edf0ec 57px
+  );
+  overflow: hidden;
+}
+.band {
+  position: absolute; top: 0; bottom: 0;
+  background: var(--soft);
+  border-left: 2px solid var(--main);
+  border-right: 2px solid var(--main);
+}
+.plottext {
+  position: absolute; top: 42%; width: 100%;
+  text-align: center; color: #69776e; line-height: 1.8;
+}
+.axis { display: flex; justify-content: space-between; font-size: 12px; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td {
+  padding: 14px; text-align: left;
+  border-bottom: 1px solid #e5eae5; white-space: nowrap;
+}
+th { background: var(--soft); }
+details { margin-top: 18px; line-height: 1.8; }
+footer {
+  margin-top: 30px; padding-top: 20px;
+  border-top: 1px solid var(--border);
+  color: #69776e; font-size: 12px; line-height: 1.8;
+}
+.hidden { display: none; }
+@media (max-width: 800px) {
+  main { padding: 16px; }
+  .hero, .metrics { grid-template-columns: 1fr; }
+  .filters { grid-template-columns: 1fr 1fr; }
+  .badge { display: none; }
+  nav { gap: 6px; }
+  nav button { padding: 10px; font-size: 13px; }
+  h2 { font-size: 24px; }
+  .mapbox { height: 360px; }
+}
+
+:root { --accent:#DB8B29; } body.review { --accent:#F3DCE4; } body.analysis { --accent:#69913B; }
+.mapbox { height:560px; background:#edf2ec; } #map {width:100%;height:100%;touch-action:manipulation;}
+.region {fill:#fff;stroke:#b5c2b8;stroke-width:.7;cursor:pointer;} .region.selected {fill:var(--soft);stroke:var(--main);stroke-width:1.5;}
+.site-dot {fill:var(--accent);stroke:#26352f;stroke-width:1.2;cursor:pointer;} .site-dot.selected {fill:var(--main);stroke:white;stroke-width:2;}
+.map-label {font-size:10px;fill:#26352f;paint-order:stroke;stroke:white;stroke-width:3px;pointer-events:none;}
+.error {color:#a32121!important;background:#fff0ed;border-left:4px solid #a32121;padding:10px;} .low {color:#8b4010;font-weight:bold;}
+#warning:empty {display:none;} svg.chartsvg {width:100%;height:auto;min-height:180px;display:block;} .tablewrap {max-height:430px;overflow:auto;}
+#stability table {font-size:12px;} #stability th,#stability td {padding:9px;}
+.metrics small {display:block;} .analysis .two {grid-template-columns:1.35fr 1fr;}
+@media(max-width:800px){.analysis .two {grid-template-columns:1fr;} .mapbox{height:440px;} nav{flex-wrap:wrap;}}
+
+.hero > *, .two > *, .filters > * {min-width:0;}
+input, select {min-width:0;max-width:100%;}
+.two {grid-template-columns:repeat(2,minmax(0,1fr));}
+@media(max-width:800px){.hero,.metrics{grid-template-columns:minmax(0,1fr);}.filters{grid-template-columns:repeat(2,minmax(0,1fr));}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <span class="logo">✳︎</span>
+  <div>
+    <h1>Season Window</h1>
+    <small>식물의 계절을 읽고, 축제의 시간을 설계하다</small>
+  </div>
+  <span class="badge">실제 관측자료 · 팀 내부 시연용</span>
+</header>
+
+<nav aria-label="화면 선택">
+  <button class="active" data-page="plan">축제 기간 설계</button>
+  <button data-page="review">봄꽃 재점검</button>
+  <button data-page="analysis">식물계절 분석</button>
+</nav>
+
+<div class="notice">
+  2009~2025년 정제본 · 수목원 10곳 · 수종 20종. 과거 기록 기반 비교이며 미래 예측 확률이 아닙니다. 자료 재배포 조건은 확인 중입니다.
+</div>
+
+<p class="muted" id="step">01 / PLAN</p>
+<h2 id="title">꽃이 머무는 시간에, 축제를 맞추다</h2>
+<p id="description">후보 축제 일정과 관람 기간을 비교하는 공간입니다.</p>
+
+<div class="filters">
+  <div>
+    <label for="province">지역 · 시/도</label>
+    <select id="province"></select>
+  </div>
+  <div>
+    <label for="city">지역 · 시/군</label>
+    <select id="city"></select>
+  </div>
+  <div>
+    <label for="species">수종</label>
+    <select id="species">
+      <option>진달래</option>
+      <option>벚나무</option>
+      <option>단풍나무</option>
+    </select>
+  </div>
+  <div>
+    <label for="phenomenon">관측 현상</label>
+    <select id="phenomenon">
+      <option>개화</option>
+      <option>단풍</option>
+    </select>
+  </div>
+</div>
+
+<div class="hero">
+  <section>
+    <h3>선택 지역 지도</h3>
+    <p class="muted">지역 경계 또는 관측지 표식을 누르면 선택 항목이 함께 바뀝니다. 관측지 10곳만 표시합니다.</p>
+    <div class="mapbox">
+      <svg id="map" viewBox="0 0 660 660" role="group" aria-label="전국 지역 및 실제 관측지 선택 지도"></svg>
+    </div>
+    <p class="muted">
+      오프라인 지도 · ● 실제 자료가 있는 수목원(전시원 중앙 좌표)<br>경계 선택은 지역 선택이며, 그 지역에 관측자료가 있다는 뜻은 아닙니다. <button id="mapReset" type="button">전국 보기</button>
+    </p>
+  </section>
+
+  <aside class="panel">
+    <small>SELECTED LOCATION</small>
+    <h3 id="location"></h3>
+    <p id="selection"></p>
+    <span class="status" id="dataStatus" role="status">자료 확인 중</span>
+
+    <div class="two">
+      <div><p class="muted">유효 관측 연수</p><div class="value" id="validYears">—</div></div>
+      <div><p class="muted">평균 관측일</p><div class="value" id="meanDate">—</div></div>
+    </div>
+
+    <label for="place">실제 관측 지점 · 정제본</label>
+    <select id="place">
+      <option>검증된 지점 목록 연결 대기</option>
+    </select>
+    <p class="muted">산·공원 위치와 실제 식물계절 관측소는 구분합니다.</p>
+
+    <label for="stage">분석할 관측 단계 · 원자료 표기</label><select id="stage"></select>
+    <p class="muted" id="stageMeaning"></p>
+    <label><input type="checkbox" id="includeSuspect" style="width:auto"> 분석 요약에 이상치 의심 기록 포함</label>
+    <div class="page plan">
+      <h3>축제 일정 설정</h3>
+      <div class="two dates">
+        <div>
+          <label for="start">시작일</label>
+          <input id="start" type="date" value="2027-04-03">
+        </div>
+        <div>
+          <label for="end">종료일</label>
+          <input id="end" type="date" value="2027-04-11">
+        </div>
+      </div>
+      <p id="duration" class="muted"></p>
+
+      <h3>변경 가능한 기간</h3>
+      <div class="two dates">
+        <div>
+          <label for="searchStart">범위 시작일</label>
+          <input id="searchStart" type="date" value="2027-03-15">
+        </div>
+        <div>
+          <label for="searchEnd">범위 종료일</label>
+          <input id="searchEnd" type="date" value="2027-04-30">
+        </div>
+      </div>
+      <p id="warning" role="status"></p>
+      <button id="calculate">과거 구간으로 일정 비교</button>
+      <p class="muted">개화시작~낙화90~100% 기록상 구간을 양 끝 포함해 비교합니다. 관람 적기와 동일하다고 단정할 수 없습니다. 단풍 구간은 기준 미확정으로 계산하지 않습니다.</p>
+    </div>
+
+    <div class="page review hidden">
+      <h3>봄꽃 재점검 기준</h3>
+      <label for="year">대상 연도 · 축제 일정과 연동</label>
+      <select id="year">
+        <option>2026</option>
+        <option>2025</option>
+        <option>2024</option>
+      </select>
+      <p id="cutoff"></p>
+      <p id="reviewNotice" class="notice"></p>
+    </div>
+
+    <div class="page analysis hidden">
+      <h3>관측자료 요약</h3>
+      <p>연도별 관측 · 수종별 안정성 · 장기 변화</p>
+      <p class="muted">관측 연수와 결측 현황을 함께 제공합니다.</p>
+      <button id="downloadCsv">선택 관측 요약 CSV 내려받기</button>
+    </div>
+  </aside>
+</div>
+
+<section class="page plan">
+  <h3>선택한 일정, 얼마나 꽃을 볼 수 있을까요?</h3>
+  <div class="metrics">
+    <article class="card">
+      예상 관람 일수
+      <div class="value">—</div>
+      <small>기록상 개화 구간과 겹치는 일수의 과거 평균</small>
+    </article>
+    <article class="card">
+      관람 가능 비율
+      <div class="value">—</div>
+      <small>위 과거 평균 ÷ 축제 일수 · 미래 예측 확률 아님</small>
+    </article>
+    <article class="card">
+      예상 주말 관람 일수
+      <div class="value">—</div>
+      <small>대상 연도의 토·일에 과거 구간을 투영한 평균</small>
+    </article>
+  </div>
+
+  <div class="chart">
+    <h3>날짜별 관람 가능성과 축제 일정</h3>
+    <p class="muted" id="curveNote"></p>
+    <div class="plot">
+      <div class="band" id="band"></div>
+      <div class="plottext">
+        실제 관측자료 연결 대기<br>
+        현재는 입력한 일정의 위치만 표시합니다.
+      </div>
+    </div>
+    <div class="axis">
+      <span id="lower"></span><span>날짜</span><span id="upper"></span>
+    </div>
+  </div>
+
+  <h3>같은 일수의 대안 일정</h3>
+  <div class="chart tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>일정</th><th>기간</th><th>예상 관람 일수</th>
+          <th>예상 주말 관람 일수</th><th>상태</th>
+        </tr>
+      </thead>
+      <tbody id="alternatives">
+        <tr>
+          <td>현재 선택</td><td id="period"></td>
+          <td>—</td><td>—</td><td>자료 연결 대기</td>
+        </tr>
+        <tr>
+          <td>대안 1</td><td>—</td><td>—</td><td>—</td>
+          <td>계산 함수 연결 대기</td>
+        </tr>
+        <tr>
+          <td>대안 2</td><td>—</td><td>—</td><td>—</td>
+          <td>계산 함수 연결 대기</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="muted">대안 행의 적용 버튼으로 일정이 바뀝니다. 변경 범위 안에서 시작·종료일이 모두 포함되는 같은 일수만 탐색합니다.</p>
+  </div>
+
+  <details>
+    <summary>과거 연도별 상세 결과</summary>
+    <div id="yearDetails" class="tablewrap"></div>
+  </details>
+</section>
+
+<section class="page review hidden">
+  <h3>기획 당시와 올해 예상 비교</h3>
+  <div class="two">
+    <article class="card">
+      과거 분포 기반 기획
+      <div class="value" id="reviewOverlap">—</div>
+      <small>과거 평균 겹침 일수</small>
+    </article>
+    <article class="card">
+      개화50%이상 예상일
+      <div class="value" id="reviewDate">—</div>
+      <small id="reviewDetails"></small>
+    </article>
+  </div>
+  <p class="notice hidden" id="reviewWarnings"></p>
+</section>
+
+<section class="page analysis hidden">
+  <h3>계절의 변동을 읽는 세 가지 관점</h3>
+  <div class="chart">
+    <h3>연도별 관측</h3>
+    <div id="observations"></div>
+  </div>
+  <div class="two">
+    <article class="card">
+      <h3>수종별 안정성</h3>
+      <div id="stability" class="tablewrap"></div>
+      <small>식재 적합성 추천이 아닌 관측 시기 비교입니다.</small>
+    </article>
+    <article class="card">
+      <h3>자료 품질</h3>
+      <div id="quality"></div>
+      <small>원자료 확인 후 제공합니다.</small>
+    </article>
+  </div>
+</section>
+
+<details>
+  <summary>자료와 계산 기준</summary>
+  <p>
+    <strong>자료 해석:</strong> 단계명은 제공 파일의 표기를 그대로 사용합니다. 개화50%이상을 ‘만개일’, 단풍50%이상을 ‘절정일’로 바꾸지 않습니다. 기관별 판정 원문은 미확인입니다.<br>
+    <strong>연도별 분석:</strong> 수목원·수종·단계별 A 임시 정제본 대표값. 날짜숫자는 해당 연도의 1월 1일=1인 연중일수(DOY)입니다. 월일 비교는 윤년인 2000년 기준 달력으로 환산하며 소수는 대표값 계산에서 보존합니다. 평균 날짜는 환산값 평균의 가까운 날짜입니다. 2월 29일을 평년 축제 달력에 투영할 때는 2월 28일로 대응합니다.<br>
+    <strong>구간 계산:</strong> 같은 나무·해의 개화시작과 낙화90~100%가 모두 있고 순서오류·첫관측일기록·이상치 의심이 없는 쌍만 사용합니다. 연도별로 각 끝점의 중앙값을 취하고 0.5일은 다음 날로 올립니다. 관측 간격과 기관별 판정 오차는 별도 보정하지 않았습니다.<br>
+    <strong>표본 기준:</strong> 8년은 전달된 A 메모와 자료 분포를 참고한 임시 기준입니다. 분석표는 부족한 조합도 표시하되 안정성 비교에서는 구분합니다. 일정 비교는 유효 구간 8년 이상에서만 제공합니다. 선택 축제 연도보다 이전의 관측 연도만 사용합니다.<br>
+    <strong>비율:</strong> 날짜별 비율은 그 날짜를 포함하는 기록상 구간의 연도 수 ÷ 유효 구간 연도 수입니다. 예상 일수는 이 비율의 합과 같습니다. 주말은 축제 대상 연도의 토·일요일이며 공휴일은 포함하지 않습니다. 대안은 과거 자료에 사후 최적화된 탐색 결과로 미래 성능 검증이 아닙니다.<br>
+    <strong>관측 범위:</strong> 정제본 10개 전시원만 연결했습니다. 원본의 다른 산·공원·11번째 기관은 별도 정제가 필요합니다. 원자료의 결측과 관측하지 않은 해를 0으로 바꾸지 않습니다.<br>
+    <strong>행정구역:</strong> vuski/admdongkor ver20261001의 256개 원본 시군구 코드를 일반구 병합하여 230개로 구성했습니다. 시/도 16개와 명칭은 해당 가공 파일의 표기이며 공식 최신성·전국 완전성을 보증하지 않습니다. 단순화 경계 및 원본 좌표 중앙값을 경계와 교차해 지점을 연결했습니다.<br>
+    본 경계 데이터는 통계청 통계지리정보서비스(SGIS, https://sgis.kostat.go.kr)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor, https://github.com/vuski/admdongkor), CC BY 4.0으로 배포됩니다. 본 도구에서 일반구 병합·경계 단순화를 수행했습니다.<br>
+    <strong>이용 조건:</strong> 식물계절 자료의 정확한 원문 데이터명·이용 조건은 추가 확인이 필요합니다. 현재는 팀 내부 분석·시연용이며 공개 재배포 승인 확인을 뜻하지 않습니다.
+  </p>
+</details>
+
+<footer>
+  Season Window · 식물계절 관측 프로젝트 | 자체 활용형 분석·시연 도구<br>
+  축제 기간 설계: 주황 · 봄꽃 재점검: 분홍 · 식물계절 분석: 녹색
+</footer>
+</main>
+
+<script id="embedded-data" type="application/json">/*__DATA__*/</script>
+<script>/*__APP__*/</script>
+</body></html>

@@ -101,6 +101,7 @@ season-window/
 
 - 국립수목원 식물계절관측 서비스 (knpn.nature.go.kr)
 - 기상청 기상자료개방포털 (data.kma.go.kr)
+- 오프라인 지도 행정 경계: [통계청 SGIS](https://sgis.kostat.go.kr) 원자료 ([공공누리 제1유형](https://www.kogl.or.kr/info/licenseType1.do)), [vuski/admdongkor ver20261001](https://github.com/vuski/admdongkor/tree/master/ver20261001) 가공본 ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))
 - 국립수목원, 17년 식물계절 관측자료 공개 (서울신문, 2026)
 - 숲 생태계 변했다, 꽃은 더 일찍 단풍은 더디게 (에너지경제, 2026.2)
 - 올해 벚꽃, 평년보다 10일 먼저 개화 (한경비즈니스, 2026.4)
