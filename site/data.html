@@ -57,6 +57,42 @@ html.js .steps:not(.in) li > :not(.ln){animation-play-state:paused}
 .limits{list-style:none;padding:0;margin:0;display:grid;gap:.875rem;max-width:var(--measure)}
 .limits li{position:relative;padding-left:1.25rem;color:var(--ink-2)}
 .limits li::before{content:"";position:absolute;left:0;top:.7em;width:.4375rem;height:.4375rem;border-radius:50%;background:var(--g300)}
+/* 한계: 2단 목록. 항목마다 숫자 → 제목 → 설명 → 대응, 같은 왼쪽 선. 그림은 펼쳐 볼 때만 */
+.lims,.lim-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,26rem),1fr));column-gap:4rem}
+.lims{list-style:none;margin:0;padding:0;row-gap:3rem}
+.lim-figs{margin-top:4rem;row-gap:1.5rem;align-items:stretch}
+.lims li{min-width:0;max-width:34rem}
+.lims .k{margin:0 0 .75rem;font-size:2.5rem;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--g700);font-variant-numeric:tabular-nums}
+.lims .k span{margin-left:.25rem;font-size:1rem;font-weight:650;letter-spacing:0;color:var(--ink-2)}
+.lims h3{font-size:1.125rem;margin:0 0 .5rem}
+.lims p{margin:0;color:var(--ink-2);font-size:.9375rem;line-height:1.65}
+.lims .fix{display:flex;align-items:baseline;gap:.5rem;margin-top:.75rem;color:var(--ink)}
+.lims .fix b{flex:none;padding:.0625rem .5rem;border-radius:999px;background:var(--g100);color:var(--g900);font-size:.75rem;font-weight:700}
+.lim-fig{display:flex;flex-direction:column;background:#fff;border:1px solid transparent;box-shadow:var(--shadow-border);border-radius:var(--r-lg);padding:clamp(1.25rem,2.5vw,1.75rem)}
+.chart-title{font-size:1rem;font-weight:700;color:var(--ink);margin:0 0 .25rem}
+.chart-sub{font-size:.875rem;color:var(--ink-2);margin:0 0 1rem}
+.lim-fig .note{margin-top:auto;padding-top:1rem}
+.sw-c{width:.75rem;height:.75rem;border-radius:3px;display:inline-block}
+.sw-c.both,.cov i.both{background:var(--g700)}
+.sw-c.one,.cov i.one{background:var(--g200)}
+.sw-c.none,.cov i.none{background:#eef1ef;box-shadow:inset 0 0 0 1px #dbe2de}
+.lim-fig .legend{font-size:.8125rem;margin-bottom:.75rem}
+/* 기록한 해 격자: 이름 칸 + 11칸 */
+.cov{display:grid;grid-template-columns:3.75rem repeat(11,minmax(0,1fr));gap:3px;font-variant-numeric:tabular-nums}
+.cov .hd{writing-mode:vertical-rl;font-size:.6875rem;color:var(--ink-2);justify-self:center;align-self:end;padding-bottom:.25rem;white-space:nowrap;line-height:1}
+.cov .rl{font-size:.75rem;font-weight:600;color:var(--ink);align-self:center;white-space:nowrap}
+.cov i{display:grid;place-items:center;aspect-ratio:1;border-radius:4px;font-size:.6875rem;font-weight:650;color:var(--ink)}
+.cov i.both{color:#fff}
+.cov i.none{color:var(--ink-2);font-weight:500}
+/* 간격 막대: 1~21일 */
+.hist{position:relative;margin-top:1.75rem;flex:1;display:flex;flex-direction:column;min-height:12rem}
+.hist .plot{position:relative;flex:1;min-height:10rem;display:grid;grid-template-columns:repeat(21,minmax(0,1fr));gap:2px;align-items:end;border-bottom:1px solid var(--ink-2)}
+.hist .b{position:relative;border-radius:3px 3px 1px 1px;background:var(--g200);transform-origin:50% 100%}
+.hist .b.wk{background:var(--g700)}
+.hist .b span{position:absolute;bottom:calc(100% + .25rem);left:50%;transform:translateX(-50%);font-size:.75rem;font-weight:700;white-space:nowrap;color:var(--ink)}
+.hist .b:last-child span{left:auto;right:0;transform:none}
+.hist .xs{display:grid;grid-template-columns:repeat(21,minmax(0,1fr));gap:2px;margin-top:.375rem;font-size:.75rem;color:var(--ink-2)}
+.hist .xs span{display:flex;justify-content:center;white-space:nowrap}
 .refs{list-style:none;padding:0;margin:0;display:grid;gap:.5rem;font-size:.9375rem;color:var(--ink-2)}
 @media (max-width:40rem){.cal-axis,.cal-row{grid-template-columns:4.5rem minmax(0,1fr) 2.75rem;column-gap:.5rem}.cal-name{font-size:.875rem}}
 </style>
@@ -148,17 +184,65 @@ html.js .steps:not(.in) li > :not(.ln){animation-play-state:paused}
   </div>
 </section>
 
-<section>
-  <div class="wrap fd-limits">
-    <div class="sec-head r"><h2>한계</h2></div>
-    <ul class="limits r" style="--i:1">
-      <li>고를 수 있는 지역은 수목원 전시원 10곳뿐입니다. 수목원이 없는 시군구는 가까운 수목원 값을 참고로만 쓸 수 있습니다.</li>
-      <li>관측 간격이 약 일주일이라 2~3일 차이는 측정 오차와 구분하기 어렵습니다.</li>
-      <li>관측 연수가 8년 미만인 수목원·종 조합은 분석과 추천에서 뺐습니다.</li>
-      <li>축제 기간 설계와 수종 추천은 봄꽃만 지원합니다. 단풍 시기를 어느 단계로 볼지는 아직 정하지 않았습니다.</li>
-      <li>예측 정확도가 기존 개화 예보보다 높다고 주장하지 않습니다. 이 도구의 쓰임은 해마다의 흔들림을 기간 설계에 반영하는 데 있습니다.</li>
-    </ul>
-    <h2 style="font-size:1.25rem;margin:4rem 0 1rem">참고한 기사</h2>
+<section id="limits">
+  <div class="wrap">
+    <div class="sec-head r"><h2>한계</h2><p>결과를 쓰기 전에 알아 두어야 할 여섯 가지와, 그래서 어떻게 했는지입니다.</p></div>
+    <ol class="lims">
+      <li class="r">
+        <p class="k">10<span>곳</span></p>
+        <h3>고를 수 있는 곳이 수목원뿐입니다</h3>
+        <p>수목원 전시원 10곳의 기록만 썼습니다. 산지 관측 지점은 평지 기상 관측소와 조건이 달라 뺐습니다.</p>
+        <p class="fix"><b>대응</b>수목원이 없는 시군구는 가까운 수목원 값을 참고로만 씁니다.</p>
+      </li>
+      <li class="r" style="--i:1">
+        <p class="k">91<span>/ 110 조합</span></p>
+        <h3>수목원과 종에 따라 기록이 모자랍니다</h3>
+        <p>봄꽃 110개 조합 가운데 8년 이상 기록돼 예측할 수 있는 조합은 91개, 추천할 수 있는 조합은 87개입니다.</p>
+        <p class="fix"><b>대응</b>8년 미만이면 계산하지 않고, 화면에 그 이유를 알려 줍니다.</p>
+      </li>
+      <li class="r">
+        <p class="k">7<span>일</span></p>
+        <h3>관측 간격이 깁니다</h3>
+        <p>같은 나무에서 다음 단계가 기록되기까지 걸린 날의 중앙값입니다. 7일, 14일, 21일에 몰려 있어 일주일 단위로 기록한 경우가 많습니다.</p>
+        <p class="fix"><b>대응</b>2~3일 차이는 의미 있게 보지 않고, 예상일은 범위로 보여 줍니다.</p>
+      </li>
+      <li class="r" style="--i:1">
+        <p class="k">23<span>km</span></p>
+        <h3>기상 관측소가 떨어져 있습니다</h3>
+        <p>수목원과 연결한 관측소는 2.5~23.2km 떨어져 있고, 나무의 해발고도는 자료에 없습니다.</p>
+        <p class="fix"><b>대응</b>기상은 분석에만 쓰고, 예측은 지난 기록만으로 합니다.</p>
+      </li>
+      <li class="r">
+        <p class="k">19<span>/ 50 조합</span></p>
+        <h3>단풍은 예측만 됩니다</h3>
+        <p>단풍 5종은 8년 이상 기록된 조합이 50개 중 19개이고, 단풍 시기를 어느 단계로 볼지 아직 정하지 않았습니다.</p>
+        <p class="fix"><b>대응</b>축제 기간 설계와 수종 추천은 봄꽃만 지원합니다.</p>
+      </li>
+      <li class="r" style="--i:1">
+        <p class="k">4.75<span>일</span></p>
+        <h3>예측이 아주 정확하지는 않습니다</h3>
+        <p>앞으로 가는 검증에서 평균 4.75일 빗나갔습니다. 과거 평균만 쓰면 5.45일입니다.</p>
+        <p class="fix"><b>대응</b>기존 예보보다 정확하다고 하지 않습니다. 흔들림을 축제 기간에 반영하는 데 씁니다.</p>
+      </li>
+    </ol>
+
+    <div class="lim-figs">
+      <figure class="lim-fig r" aria-labelledby="cov-cap">
+        <p class="chart-title">수목원과 종마다 개화를 기록한 해</p>
+        <p class="chart-sub">칸 안 숫자는 2009~2025년 가운데 기록한 해의 수입니다.</p>
+        <div class="legend" aria-hidden="true"><span><i class="sw-c both"></i>예측과 추천 (86)</span><span><i class="sw-c one"></i>하나만 (6)</span><span><i class="sw-c none"></i>8년 미만이라 제외 (18)</span></div>
+        <div class="cov m" id="cov" aria-hidden="true"></div>
+        <figcaption class="note" id="cov-cap">예측은 개화50%이상, 추천은 개화시작과 낙화를 함께 기록한 해가 8년 이상일 때 합니다.</figcaption>
+      </figure>
+      <figure class="lim-fig r" style="--i:1" aria-labelledby="gap-cap">
+        <p class="chart-title">다음 단계가 기록되기까지 걸린 날</p>
+        <p class="chart-sub">같은 나무에서 봄철 단계가 이어서 기록된 13,468쌍의 비율입니다.</p>
+        <div class="hist" id="hist" role="img" aria-labelledby="gap-cap"></div>
+        <figcaption class="note" id="gap-cap">7일이 18%로 가장 많고, 7일, 14일, 21일을 합치면 28%입니다. 22일 이상(9%)은 생략했습니다.</figcaption>
+      </figure>
+    </div>
+
+    <h2 style="font-size:1.25rem;margin:4.5rem 0 1rem">참고한 기사</h2>
     <ul class="refs r">
       <li>국립수목원, 17년 식물계절 관측자료 공개 (서울신문, 2026)</li>
       <li>숲 생태계 변했다, 꽃은 더 일찍 단풍은 더디게 (에너지경제, 2026.2)</li>
@@ -207,6 +291,38 @@ const CAL = [{"sp": "생강나무", "start": 75.5, "end": 100.7, "early": 65.0, 
   });
   document.getElementById('cal-table').innerHTML = '<thead><tr><th>종</th><th>평균 개화시작</th><th>평균 낙화</th><th>이른 해 시작</th><th>늦은 해 끝</th><th class="n">기간</th></tr></thead><tbody>' +
     CAL.map(r => `<tr><td>${r.sp}</td><td>${md(r.start)}</td><td>${md(r.end)}</td><td>${md(r.early)}</td><td>${md(r.late)}</td><td class="n">${Math.round(r.dur)}일</td></tr>`).join('') + '</tbody>';
+})();
+
+/* 수목원과 종마다 기록한 해 */
+(() => {
+  const C = {"sites": ["강원도립화목원", "경남수목원", "국립수목원", "금강수목원", "대구수목원", "대아수목원", "물향기수목원", "미동산수목원", "완도수목원", "한라수목원"], "species": ["생강나무", "산수유", "미선나무", "개나리", "진달래", "백목련", "왕벚나무", "산철쭉", "철쭉", "마가목", "아까시나무"], "grid": {"강원도립화목원": {"생강나무": [16, true, true], "산수유": [17, true, true], "미선나무": [16, true, true], "개나리": [17, true, true], "진달래": [17, true, true], "백목련": [17, true, true], "왕벚나무": [7, false, false], "산철쭉": [16, true, true], "철쭉": [17, true, true], "마가목": [14, true, true], "아까시나무": [17, true, true]}, "경남수목원": {"생강나무": [16, true, true], "산수유": [15, true, true], "미선나무": [14, true, true], "개나리": [15, true, true], "진달래": [15, true, true], "백목련": [15, true, true], "왕벚나무": [6, false, true], "산철쭉": [16, true, true], "철쭉": [14, true, true], "마가목": [4, false, false], "아까시나무": [12, true, false]}, "국립수목원": {"생강나무": [13, true, true], "산수유": [16, true, true], "미선나무": [11, true, true], "개나리": [17, true, true], "진달래": [14, true, true], "백목련": [14, true, true], "왕벚나무": [17, true, true], "산철쭉": [14, true, true], "철쭉": [15, true, true], "마가목": [0, false, false], "아까시나무": [14, true, true]}, "금강수목원": {"생강나무": [1, false, false], "산수유": [11, true, true], "미선나무": [10, true, true], "개나리": [11, true, true], "진달래": [10, true, true], "백목련": [11, true, true], "왕벚나무": [11, true, true], "산철쭉": [0, false, false], "철쭉": [0, false, false], "마가목": [12, true, true], "아까시나무": [2, false, false]}, "대구수목원": {"생강나무": [15, true, true], "산수유": [16, true, true], "미선나무": [16, true, true], "개나리": [16, true, true], "진달래": [16, true, true], "백목련": [15, true, true], "왕벚나무": [15, true, true], "산철쭉": [15, true, true], "철쭉": [2, false, false], "마가목": [15, true, true], "아까시나무": [7, false, false]}, "대아수목원": {"생강나무": [2, false, false], "산수유": [15, true, true], "미선나무": [8, true, false], "개나리": [16, true, true], "진달래": [16, true, true], "백목련": [16, true, true], "왕벚나무": [15, true, true], "산철쭉": [12, true, true], "철쭉": [14, true, true], "마가목": [1, false, false], "아까시나무": [9, true, false]}, "물향기수목원": {"생강나무": [14, true, true], "산수유": [15, true, true], "미선나무": [14, true, true], "개나리": [16, true, true], "진달래": [15, true, true], "백목련": [16, true, true], "왕벚나무": [16, true, true], "산철쭉": [10, true, true], "철쭉": [15, true, true], "마가목": [4, false, false], "아까시나무": [5, false, false]}, "미동산수목원": {"생강나무": [6, false, false], "산수유": [14, true, true], "미선나무": [15, true, true], "개나리": [14, true, true], "진달래": [15, true, true], "백목련": [12, true, true], "왕벚나무": [12, true, true], "산철쭉": [14, true, true], "철쭉": [15, true, true], "마가목": [11, true, true], "아까시나무": [13, true, true]}, "완도수목원": {"생강나무": [16, true, true], "산수유": [16, true, true], "미선나무": [13, true, false], "개나리": [16, true, true], "진달래": [16, true, true], "백목련": [16, true, true], "왕벚나무": [15, true, true], "산철쭉": [15, true, true], "철쭉": [1, false, false], "마가목": [5, false, false], "아까시나무": [15, true, true]}, "한라수목원": {"생강나무": [13, true, true], "산수유": [16, true, true], "미선나무": [15, true, true], "개나리": [16, true, true], "진달래": [5, false, false], "백목련": [16, true, true], "왕벚나무": [16, true, true], "산철쭉": [16, true, true], "철쭉": [0, false, false], "마가목": [8, true, false], "아까시나무": [14, true, true]}}}, { el } = SW, box = document.getElementById('cov');
+  const short = n => n.replace('강원도립화목원','강원').replace('물향기수목원','물향기').replace('수목원','');
+  box.append(el('span'));
+  C.species.forEach(sp => box.append(el('span','hd', sp)));
+  C.sites.forEach(s => {
+    box.append(el('span','rl', short(s)));
+    C.species.forEach(sp => {
+      const [n, p, r] = C.grid[s][sp], k = p && r ? 'both' : (p || r ? 'one' : 'none');
+      const c = el('i', k, String(n));
+      c.title = `${s} ${sp}: ${n}년 기록, ${p ? '예측 가능' : '예측 안 함'}, ${r ? '추천 가능' : '추천 안 함'}`;
+      box.append(c);
+    });
+  });
+})();
+
+/* 다음 단계까지 걸린 날 */
+(() => {
+  const G = {"n": 13468, "median": 7.0, "counts": [388, 555, 940, 974, 728, 864, 2463, 790, 456, 488, 411, 293, 384, 1007, 300, 160, 207, 181, 135, 134, 356], "over21": 1254, "share7": 0.183, "share_wk": 0.284}, { el } = SW, box = document.getElementById('hist'), max = Math.max(...G.counts);
+  const plot = el('div','plot'), xs = el('div','xs');
+  G.counts.forEach((c, i) => {
+    const d = i + 1, pct = c / G.n * 100, wk = d % 7 === 0;
+    const b = el('i', 'b m gy' + (wk ? ' wk' : '')); b.style.height = (c / max * 100).toFixed(1) + '%';
+    b.title = `${d}일: ${pct.toFixed(1)}% (${c.toLocaleString()}쌍)`;
+    if (wk) b.append(el('span', null, `${d}일 ${Math.round(pct)}%`));
+    plot.append(b);
+    xs.append(el('span', null, d === 1 || wk ? `${d}일` : ''));
+  });
+  box.append(plot, xs);
 })();
 </script>
 </body>
