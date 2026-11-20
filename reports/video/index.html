@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Season Window: 축제는 그대로인데 꽃은 해마다 움직입니다</title>
+<style>
+html,body{margin:0;background:#fff}
+#root{position:relative;width:1920px;height:1080px;overflow:hidden;background:#fff;font-family:"Noto Sans CJK KR",sans-serif;color:#0f2419;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;word-break:keep-all}
+.clip{position:absolute;inset:0;visibility:hidden}
+.a{will-change:transform,opacity,filter}
+/* 제목 장면 */
+#s-title .lines{position:absolute;left:192px;top:330px;font-weight:900;font-size:150px;line-height:1.12;letter-spacing:-.035em}
+#s-title .ln{display:block;white-space:nowrap}
+#s-title .w{display:inline-block}
+#s-title .sub{position:absolute;left:196px;top:720px;font-size:40px;color:#4b5e53;font-weight:500}
+/* 그래프 장면 */
+#hdr-l{position:absolute;left:192px;top:118px}
+#hdr-l .lab{font-size:30px;color:#4b5e53;font-weight:500}
+#year{display:block;font-size:210px;font-weight:900;letter-spacing:-.045em;line-height:.95;color:#0b4a2b;margin-top:10px}
+#hdr-r{position:absolute;right:192px;top:150px;text-align:right}
+#days{display:inline-block;font-size:150px;font-weight:900;letter-spacing:-.04em;line-height:1;color:#14703f}
+#hdr-r .lab{display:block;font-size:32px;color:#4b5e53;font-weight:500;margin-top:8px}
+#track{position:absolute;left:192px;top:540px;width:1536px;height:120px;border-radius:26px;background:#f2f8f4;transform-origin:0 50%}
+.grid{position:absolute;top:0;bottom:0;width:2px;background:#dfe9e2}
+#bloom{position:absolute;left:0;right:0;top:22px;height:76px;background:#2fa564}
+#fest{position:absolute;top:-14px;bottom:-14px;border:6px solid #0b4a2b;border-radius:24px}
+#fest-lab{position:absolute;left:50%;bottom:calc(100% + 18px);transform:translateX(-50%);white-space:nowrap;font-size:32px;font-weight:700;color:#0b4a2b}
+#ticks{position:absolute;left:192px;top:680px;width:1536px;height:40px;font-size:28px;color:#4b5e53}
+#ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+#note{position:absolute;left:192px;top:744px;width:1536px;height:50px}
+#note span{position:absolute;white-space:nowrap;font-size:38px;font-weight:700;color:#0b4a2b}
+#strip{position:absolute;left:192px;top:820px;width:1536px;height:92px;display:grid;grid-template-columns:repeat(16,1fr);gap:10px;align-items:end}
+#strip i{display:block;border-radius:8px 8px 3px 3px;background:#c9ead6;transform-origin:50% 100%}
+#strip-y{position:absolute;left:192px;top:924px;width:1536px;display:grid;grid-template-columns:repeat(16,1fr);gap:10px;font-size:24px;color:#4b5e53;text-align:center}
+#strip-cap{position:absolute;left:192px;top:780px;font-size:26px;color:#4b5e53}
+/* 마무리 장면 */
+#s-end .big{position:absolute;left:192px;top:250px;font-size:190px;font-weight:900;letter-spacing:-.04em;color:#14703f;line-height:1}
+#s-end .line{position:absolute;left:198px;top:470px;font-size:56px;font-weight:700;color:#0f2419}
+#s-end .brand{position:absolute;left:198px;top:690px;display:flex;align-items:center;gap:22px;font-size:60px;font-weight:900;letter-spacing:-.01em}
+#s-end .brand svg{width:72px;height:72px}
+#s-end .tag{position:absolute;left:198px;top:785px;font-size:36px;color:#4b5e53;font-weight:500}
+#s-end .src{position:absolute;left:198px;top:900px;font-size:24px;color:#4b5e53}
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-width="1920" data-height="1080" data-duration="26">
+
+  <section id="s-title" class="clip" data-start="0" data-duration="3.7" data-track-index="0" data-track-kind="graphics">
+    <div class="lines">
+      <span class="ln"><span class="w a" id="w0">축제는</span> <span class="w a" id="w1">그대로인데</span></span>
+      <span class="ln"><span class="w a" id="w2">꽃은</span> <span class="w a" id="w3">해마다</span> <span class="w a" id="w4">움직입니다</span></span>
+    </div>
+    <div class="sub a" id="t-sub">국립수목원 17년 식물계절 관측자료, 왕벚나무 2010~2025년</div>
+  </section>
+
+  <section id="s-chart" class="clip" data-start="3.5" data-duration="19" data-track-index="0" data-track-kind="graphics">
+    <div id="hdr-l" class="a"><div class="lab">왕벚나무 개화, 수목원 전시원 10곳 평균</div><span id="year" class="a">2010</span></div>
+    <div id="hdr-r" class="a"><span id="days" class="a">0일</span><span class="lab">축제 9일 중 꽃이 핀 날</span></div>
+    <div id="track" class="a"><i id="bloom" class="a"></i><div id="fest" class="a"><span id="fest-lab">축제 기간 4월 3일~11일 (고정)</span></div></div>
+    <div id="ticks" class="a"></div>
+    <div id="note"><span id="n1" class="a">2010년: 축제가 끝난 뒤에야 피기 시작했습니다</span><span id="n2" class="a">2021년: 축제가 끝나는 날 꽃도 졌습니다</span><span id="n3" class="a">16해 중 8해만 축제 9일 내내 꽃이 있었습니다</span></div>
+    <div id="strip" class="a"></div>
+    <div id="strip-y" class="a"></div>
+  </section>
+
+  <section id="s-end" class="clip" data-start="22.3" data-duration="3.7" data-track-index="0" data-track-kind="graphics">
+    <div class="big a" id="e-big">8해 / 16해</div>
+    <div class="line a" id="e-line">날짜를 고정한 축제가 꽃과 온전히 만난 해</div>
+    <div class="brand a" id="e-brand"><svg viewBox="0 0 32 32"><rect x="2" y="5" width="28" height="24" rx="6" fill="#14703f"/><rect x="6" y="15" width="20" height="5" rx="2.5" fill="#c9ead6"/><rect x="11" y="15" width="9" height="5" rx="2.5" fill="#fff"/><path d="M9 2.5v5M23 2.5v5" stroke="#0b4a2b" stroke-width="2.5" stroke-linecap="round"/></svg>Season Window</div>
+    <div class="tag a" id="e-tag">해마다의 흔들림을 축제 기간 설계에 반영하는 도구</div>
+    <div class="src a" id="e-src">자료: 국립수목원 식물계절관측 프로젝트 2010~2025년, 왕벚나무 수목원 전시원 10곳 평균. 축제 기간은 예시입니다.</div>
+  </section>
+</div>
+
+<script>
+// HyperFrames 계약: 멈춘 타임라인 하나, 모든 화면은 시간의 함수. 타이머·난수·네트워크 없음.
+const Y = [{"y": 2010, "s": 102.2, "e": 114.6}, {"y": 2011, "s": 101.4, "e": 117.5}, {"y": 2012, "s": 102.2, "e": 115.5}, {"y": 2013, "s": 95.8, "e": 110.3}, {"y": 2014, "s": 91.2, "e": 105.4}, {"y": 2015, "s": 94.3, "e": 107.8}, {"y": 2016, "s": 92.8, "e": 105.7}, {"y": 2017, "s": 94.0, "e": 108.4}, {"y": 2018, "s": 92.9, "e": 104.4}, {"y": 2019, "s": 94.6, "e": 109.0}, {"y": 2020, "s": 89.8, "e": 110.2}, {"y": 2021, "s": 83.1, "e": 100.9}, {"y": 2022, "s": 92.4, "e": 106.2}, {"y": 2023, "s": 86.3, "e": 99.8}, {"y": 2024, "s": 92.1, "e": 105.6}, {"y": 2025, "s": 92.2, "e": 107.9}];
+const FS = 93, FE = 101, LO = 76, HI = 124, W = 1536;
+const X = d => (d - LO) / (HI - LO) * W;
+const days = Y.map(r => { const s = Math.round(r.s), e = Math.round(r.e); return Math.max(0, Math.min(e, FE) - Math.max(s, FS) + 1); });
+const steps = [5.0, 7.6, 8.3, 9.0, 9.7, 10.4, 11.1, 11.8, 12.5, 13.2, 13.9, 14.6, 16.9, 17.6, 18.3, 19.0];
+const SUMMARY = 19.7;
+
+const clamp = v => Math.min(1, Math.max(0, v));
+const expoOut = t => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+const p3out = t => 1 - Math.pow(1 - t, 3);
+const p3in = t => t * t * t;
+const lerp = (a, b, k) => a + (b - a) * k;
+const $ = id => document.getElementById(id);
+
+// 고정 요소 만들기 (시간과 무관한 정적 구조)
+const track = $('track');
+[[80,'3월 21일'],[91,'4월 1일'],[101,'4월 11일'],[111,'4월 21일'],[121,'5월 1일']].forEach(([d, l]) => {
+  const g = document.createElement('i'); g.className = 'grid'; g.style.left = X(d) + 'px'; track.insertBefore(g, $('bloom'));
+  const s = document.createElement('span'); s.textContent = l; s.style.left = X(d) + 'px'; $('ticks').append(s);
+});
+const fest = $('fest'); fest.style.left = X(FS - .5) + 'px'; fest.style.width = (X(FE + .5) - X(FS - .5)) + 'px';
+const bars = Y.map((r, i) => { const b = document.createElement('i'); b.style.height = Math.max(6, days[i] / 9 * 92) + 'px'; $('strip').append(b); return b; });
+Y.forEach(r => { const s = document.createElement('span'); s.textContent = r.y % 5 === 0 ? r.y : ''; $('strip-y').append(s); });
+const noteX = { n1: X((Y[0].s + Y[0].e) / 2), n2: X((Y[11].s + Y[11].e) / 2), n3: W / 2 };
+Object.entries(noteX).forEach(([k, x]) => { const n = $(k), w = n.offsetWidth; n.style.left = Math.min(Math.max(x - w / 2, 0), W - w) + 'px'; });
+
+// 등장/퇴장 한 덩어리: 들어올 때 y와 흐림이 길게 가라앉고(expo.out), 나갈 때는 짧게 흐려진다
+function enter(el, t, t0, { dur = .7, y = 28, blur = 10, scale = 1, out = null, outDur = .25 } = {}) {
+  let k = expoOut(clamp((t - t0) / dur)), o = k, yy = (1 - k) * y, b = (1 - k) * blur, s = lerp(scale, 1, k);
+  if (out != null && t >= out) { const q = p3in(clamp((t - out) / outDur)); o = 1 - q; b = q * 8; yy = -q * 12; }
+  el.style.opacity = o.toFixed(3);
+  el.style.transform = `translateY(${yy.toFixed(2)}px) scale(${s.toFixed(4)})`;
+  el.style.filter = b > .05 ? `blur(${b.toFixed(2)}px)` : 'none';
+}
+function clips(t) {
+  document.querySelectorAll('.clip').forEach(c => {
+    const s = +c.dataset.start, d = +c.dataset.duration;
+    c.style.visibility = (t >= s && t < s + d) ? 'visible' : 'hidden';
+  });
+}
+function idx(t) { let k = -1; steps.forEach((s, i) => { if (t >= s) k = i; }); return k; }
+
+function seek(t) {
+  clips(t);
+  // 제목: 단어마다 140ms 간격으로 내려앉음, 3.3초부터 단어 순서대로 흐려지며 퇴장
+  for (let i = 0; i < 5; i++) enter($('w' + i), t, .25 + i * .14, { dur: .9, y: 44, blur: 14, out: 3.3 + i * .04, outDur: .22 });
+  enter($('t-sub'), t, 1.15, { dur: .8, y: 20, blur: 8, out: 3.3, outDur: .22 });
+
+  // 그래프 틀
+  const OUT = 22.1;
+  enter($('hdr-l'), t, 3.6, { out: OUT }); enter($('hdr-r'), t, 3.7, { out: OUT });
+  const tk = p3out(clamp((t - 3.7) / .7));
+  track.style.transform = `scaleX(${tk.toFixed(4)})`;
+  track.style.opacity = t >= OUT ? (1 - p3in(clamp((t - OUT) / .25))).toFixed(3) : 1;
+  enter($('ticks'), t, 3.95, { y: 10, blur: 6, out: OUT });
+  enter(fest, t, 4.25, { y: 0, blur: 6, scale: .96, out: OUT });
+  enter($('strip'), t, 4.45, { y: 14, blur: 6, out: OUT }); enter($('strip-y'), t, 4.5, { y: 10, blur: 4, out: OUT });
+
+  // 연도 진행
+  const k = idx(t), bloom = $('bloom');
+  if (k < 0) { bloom.style.clipPath = `inset(0 ${W}px 0 0 round 16px)`; }
+  else {
+    const r = Y[k], q = expoOut(clamp((t - steps[k]) / .6));
+    let l0, r0;
+    if (k === 0) { l0 = X(r.s); r0 = W - X(r.s); } else { l0 = X(Y[k - 1].s); r0 = W - X(Y[k - 1].e); }
+    const l = lerp(l0, X(r.s), q), rr = lerp(r0, W - X(r.e), q);
+    bloom.style.clipPath = `inset(0 ${rr.toFixed(1)}px 0 ${l.toFixed(1)}px round 16px)`;
+  }
+  const kk = Math.max(0, k);
+  const yEl = $('year'), dEl = $('days');
+  if (yEl.textContent !== String(Y[kk].y)) yEl.textContent = Y[kk].y;
+  if (dEl.textContent !== days[kk] + '일') dEl.textContent = days[kk] + '일';
+  dEl.style.color = days[kk] ? '#14703f' : '#4b5e53';
+  if (k > 0) { enter(yEl, t, steps[k], { dur: .45, y: 18, blur: 6 }); enter(dEl, t, steps[k], { dur: .45, y: 18, blur: 6 }); }
+  else { yEl.style.cssText = ''; dEl.style.opacity = ''; dEl.style.transform = ''; dEl.style.filter = ''; dEl.style.color = days[kk] ? '#14703f' : '#4b5e53'; }
+
+  bars.forEach((b, i) => {
+    const g = p3out(clamp((t - steps[i]) / .45));
+    b.style.transform = `scaleY(${g.toFixed(4)})`;
+    let c = '#c9ead6';
+    if (t < SUMMARY) { if (i === k) c = '#14703f'; }
+    else c = days[i] === 9 ? '#14703f' : '#dbe8e0';
+    b.style.background = c;
+  });
+
+  // 표시 글: 표시할 막대 아래 한 자리에서 교대
+  enter($('n1'), t, 5.6, { dur: .6, y: 16, blur: 8, out: 7.35, outDur: .22 });
+  enter($('n2'), t, 15.2, { dur: .6, y: 16, blur: 8, out: 16.75, outDur: .22 });
+  enter($('n3'), t, SUMMARY + .2, { dur: .7, y: 16, blur: 8, out: OUT });
+
+  // 마무리
+  enter($('e-big'), t, 22.4, { dur: .9, y: 36, blur: 12 });
+  enter($('e-line'), t, 22.55, { dur: .8, y: 20, blur: 8 });
+  enter($('e-brand'), t, 23.0, { dur: .8, y: 20, blur: 8 });
+  enter($('e-tag'), t, 23.12, { dur: .8, y: 16, blur: 6 });
+  enter($('e-src'), t, 23.25, { dur: .8, y: 10, blur: 4 });
+}
+
+const tl = { duration: 26, time: 0, seek(t) { this.time = t; seek(t); return this; }, pause() { return this; }, paused: () => true };
+window.__timelines = window.__timelines || {};
+window.__timelines['main'] = tl;
+tl.seek(0);
+</script>
+</body>
+</html>

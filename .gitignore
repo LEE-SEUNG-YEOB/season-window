@@ -43,3 +43,13 @@ desktop.ini
 
 # 내부 시연 빌드 산출물
 /service/offline/outputs/
+
+# 내부 시연 결과물은 어디에 만들어도 막는다 (해별 날짜가 그대로 들어 있음)
+*내부시연*.html
+데이터_조사결과.json
+
+# 배포와 영상 작업 부산물
+.vercel/
+node_modules/
+reports/video/frames/
+reports/video/stills/

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터와 방법 | Season Window</title>
+<meta name="description" content="국립수목원 식물계절 관측자료와 기상청 ASOS 일자료의 정제 과정, 데이터 개선 제안, 한계.">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:title" content="데이터와 방법 | Season Window">
+<meta property="og:description" content="국립수목원 식물계절 관측자료와 기상청 ASOS 일자료의 정제 과정, 데이터 개선 제안, 한계.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox='0 0 32 32' aria-hidden='true'><rect x='2' y='5' width='28' height='24' rx='6' fill='%2314703f'/><rect x='6' y='15' width='20' height='5' rx='2.5' fill='%23c9ead6'/><rect x='11' y='15' width='9' height='5' rx='2.5' fill='%23fff'/><path d='M9 2.5v5M23 2.5v5' stroke='%230b4a2b' stroke-width='2.5' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+.why{display:grid;grid-template-columns:minmax(0,1fr);gap:2.5rem;align-items:end}
+@media (min-width:62rem){.why{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.why .stats{margin-top:0}
+.cal-wrap{background:#fff;border:1px solid transparent;box-shadow:var(--shadow-border);border-radius:var(--r-lg);padding:clamp(1.25rem,2.5vw,2rem)}
+.cal-axis,.cal-row{display:grid;grid-template-columns:5.5rem minmax(0,1fr) 3.25rem;align-items:center;column-gap:.875rem}
+.cal-row{min-height:2.25rem}
+.cal-name{font-size:.9375rem;font-weight:600}
+.cal-dur{font-size:.875rem;color:var(--ink-2);text-align:end;font-variant-numeric:tabular-nums}
+.track{position:relative;height:1.25rem}
+.track .grid{position:absolute;top:-.55rem;bottom:-.55rem;width:1px;background:var(--rule-soft)}
+.track .band{position:absolute;top:0;bottom:0;background:var(--g100);border-radius:5px}
+.track .bar{position:absolute;top:.1875rem;bottom:.1875rem;background:var(--g500);border-radius:4px}
+.cal-row:hover .bar{background:var(--g700)}
+.cal-axis{margin-bottom:.5rem}
+.cal-axis .ticks{position:relative;height:1.25rem;font-size:.8125rem;color:var(--ink-2)}
+.cal-axis .ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.cal-axis .h{font-size:.8125rem;color:var(--ink-2)}
+.cal-axis .h:last-child{text-align:end}
+.sw-bar{width:1.5rem;height:.625rem;border-radius:3px;background:var(--g500);display:inline-block}
+.sw-band{width:1.5rem;height:.875rem;border-radius:4px;background:var(--g100);display:inline-block}
+.ds{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:1.25rem}
+.ds > div{padding:1.75rem;border:1px solid transparent;box-shadow:var(--shadow-border);border-radius:var(--r-lg);background:#fff}
+.ds h3{margin-bottom:.25rem}
+.ds .src{font-size:.875rem;color:var(--g700);font-weight:600;margin:0 0 1rem}
+.ds dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.375rem 1rem;margin:0;font-size:.9375rem}
+.ds dt{color:var(--ink-2)}
+.ds dd{margin:0}
+.steps{list-style:none;padding:0;margin:3rem 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10.5rem),1fr));gap:1.5rem 1.25rem}
+.steps li{position:relative;padding-top:1.25rem}
+.steps .ln{position:absolute;left:0;right:0;top:0;height:2px;border-radius:1px;background:var(--g300);transform-origin:0 50%}
+.steps li:first-child .ln{background:var(--g700)}
+.steps li > :not(.ln){animation:fade-in 300ms ease-out backwards;animation-delay:calc(var(--i) * 100ms + 150ms)}
+html.js .steps:not(.in) li > :not(.ln){animation-play-state:paused}
+.steps .n{display:block;font-size:.875rem;font-weight:750;color:var(--g700);margin-bottom:.375rem;font-variant-numeric:tabular-nums}
+.steps b{display:block;font-size:1.0625rem;margin-bottom:.375rem}
+.steps p{font-size:.9375rem;color:var(--ink-2);margin:0}
+.ideas{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:1.25rem}
+.ideas li{padding:1.5rem 1.625rem;border-radius:var(--r-lg);background:#fff;border:1px solid transparent;box-shadow:var(--shadow-border)}
+.ideas h3{font-size:1.0625rem;margin-bottom:.5rem}
+.ideas p{color:var(--ink-2);margin:0;font-size:.9375rem}
+.limits{list-style:none;padding:0;margin:0;display:grid;gap:.875rem;max-width:var(--measure)}
+.limits li{position:relative;padding-left:1.25rem;color:var(--ink-2)}
+.limits li::before{content:"";position:absolute;left:0;top:.7em;width:.4375rem;height:.4375rem;border-radius:50%;background:var(--g300)}
+.refs{list-style:none;padding:0;margin:0;display:grid;gap:.5rem;font-size:.9375rem;color:var(--ink-2)}
+@media (max-width:40rem){.cal-axis,.cal-row{grid-template-columns:4.5rem minmax(0,1fr) 2.75rem;column-gap:.5rem}.cal-name{font-size:.875rem}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="5" width="28" height="24" rx="6" fill="#14703f"/><rect x="6" y="15" width="20" height="5" rx="2.5" fill="#c9ead6"/><rect x="11" y="15" width="9" height="5" rx="2.5" fill="#fff"/><path d="M9 2.5v5M23 2.5v5" stroke="#0b4a2b" stroke-width="2.5" stroke-linecap="round"/></svg>Season Window</a>
+    <nav class="site-nav" aria-label="주요 메뉴"><ul><li><a href="findings.html">알아낸 것</a></li><li><a href="tool.html">만든 것</a></li><li><a href="data.html" aria-current="page">데이터와 방법</a></li></ul></nav>
+  </div>
+</header>
+<main id="main">
+<section class="page-hero">
+  <div class="wrap">
+    <h1 class="page-title"><span class="w" style="--w:0">데이터와</span> <span class="w" style="--w:1">방법</span></h1>
+    <p class="lead e" style="--i:2">국립수목원과 기상청이 공개한 자료를 파일로 내려받아 직접 정제하고 분석했습니다. 원자료와 정제한 자료는 공개하지 않고, 집계한 결과만 싣습니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap why">
+    <div class="r">
+      <h2>축제와 꽃이 자주 어긋납니다</h2>
+      <p class="lead" style="margin-top:1rem">꽃 축제는 몇 달 전부터 일정을 정해야 하지만, 꽃은 그해 날씨에 따라 일주일 넘게 당겨지거나 밀립니다. 지자체는 축제 기간을 늘려 대응하지만, 며칠을 늘려야 충분한지에 대한 근거는 없었습니다.</p>
+    </div>
+    <div class="r" style="--i:1">
+      <ul class="stats">
+        <li><b>10%</b><span>2025년 광양매화축제 개막 초 개화율</span></li>
+        <li><b>11만 8천 명</b><span>같은 축제의 전년 대비 방문객 감소</span></li>
+        <li><b>10일</b><span>2026년 서울 벚꽃이 평년보다 먼저 핀 날</span></li>
+      </ul>
+      <p class="note">출처: 한국경제(2025.3), 한경비즈니스(2026.4). 기사 목록은 이 페이지 맨 아래에 있습니다.</p>
+    </div>
+  </div>
+</section>
+
+<section class="soft">
+  <div class="wrap">
+    <div class="sec-head r">
+      <h2>다룬 봄꽃 11종</h2>
+      <p>수목원 전시원 10곳의 2009~2025년 기록으로 계산한, 종마다 꽃이 피어 있는 기간입니다. 이른 해와 늦은 해를 합치면 같은 종도 한 달 넘게 차이가 납니다.</p>
+    </div>
+    <figure class="cal-wrap r" style="--i:1" aria-labelledby="cal-cap">
+      <div class="legend" aria-hidden="true"><span><i class="sw-bar"></i>평균 개화시작부터 평균 낙화까지</span><span><i class="sw-band"></i>이른 해의 시작부터 늦은 해의 끝까지(10~90%)</span></div>
+      <div id="cal" aria-hidden="true"></div>
+      <figcaption class="note" id="cal-cap">오른쪽 숫자는 개화시작부터 낙화까지 걸린 일수의 중앙값입니다.</figcaption>
+      <details><summary>표로 보기</summary><div class="tbl"><table id="cal-table"></table></div></details>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head r"><h2>쓴 데이터</h2><p>두 기관의 자료를 수목원마다 가장 가까운 기상 관측소로 이었습니다.</p></div>
+    <div class="ds">
+      <div class="r" style="--i:1">
+        <h3>식물계절 장기관측 DB</h3>
+        <p class="src">국립수목원 식물계절관측 프로젝트</p>
+        <dl><dt>기간</dt><dd>2009~2025년</dd><dt>규모</dt><dd>20종, 61,309건</dd><dt>한 건</dt><dd>나무 한 그루를 어느 날 관측한 기록</dd><dt>쓴 범위</dt><dd>수목원 전시원 10곳, 26,408건</dd></dl>
+      </div>
+      <div class="r" style="--i:2">
+        <h3>종관기상관측(ASOS) 일자료</h3>
+        <p class="src">기상청 기상자료개방포털</p>
+        <dl><dt>기간</dt><dd>2008년 12월~2025년</dd><dt>규모</dt><dd>30개 지점, 176,422일</dd><dt>항목</dt><dd>기온, 강수량, 일조시간, 지면온도</dd><dt>연결</dt><dd>수목원마다 가장 가까운 관측소 1곳</dd></dl>
+      </div>
+    </div>
+    <ol class="steps r">
+      <li style="--i:0"><i class="ln m gx" aria-hidden="true"></i><span class="n">1</span><b>합치기</b><p>종별로 나뉜 파일 20개를 하나로 합쳤습니다.</p></li>
+      <li style="--i:1"><i class="ln m gx" aria-hidden="true"></i><span class="n">2</span><b>범위 정하기</b><p>평지에 있어 기상 관측소와 조건이 비슷한 수목원 전시원 10곳만 썼습니다.</p></li>
+      <li style="--i:2"><i class="ln m gx" aria-hidden="true"></i><span class="n">3</span><b>정제</b><p>날짜를 1월 1일부터 며칠째로 바꾸고, 반복 기록 301건, 순서가 뒤집힌 337건, 좌표가 맞지 않는 기록을 기준을 정해 정리했습니다.</p></li>
+      <li style="--i:3"><i class="ln m gx" aria-hidden="true"></i><span class="n">4</span><b>기상 연결</b><p>2008년부터 자료가 있는 가장 가까운 관측소를 이었고, 대구 관측소의 2015년 이전 변화를 보정했습니다.</p></li>
+      <li style="--i:4"><i class="ln m gx" aria-hidden="true"></i><span class="n">5</span><b>분석과 검증</b><p>종과 지역별 흔들림을 재고, 예측은 한 해씩 떼어 두고 맞히는 방식으로 검증했습니다.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="soft">
+  <div class="wrap">
+    <div class="sec-head r"><h2>데이터를 쓰며 찾은 개선점</h2><p>정제하면서 직접 부딪힌 문제를 바탕으로, 이 자료를 쓰는 사람에게 도움이 될 개선 방향을 정리했습니다.</p></div>
+    <ul class="ideas">
+      <li class="r" style="--i:0"><h3>이용 조건을 파일과 함께 알려 주세요</h3><p>공공누리 유형이나 재배포 가능 여부를 찾지 못해, 정제한 자료를 공개하지 못하고 집계 결과만 공개했습니다.</p></li>
+      <li class="r" style="--i:1"><h3>좌표 형식을 통일하고 범위를 검사해 주세요</h3><p>도·분·초를 소수로 잘못 옮긴 것으로 보이는 좌표, 경도 126.5가 129.5로 적힌 기록, 수목원에서 30km 넘게 떨어진 전시원 기록이 있었습니다.</p></li>
+      <li class="r" style="--i:2"><h3>관측한 날을 모두 남겨 주세요</h3><p>지금은 단계가 확인된 날만 기록되어 실제 관측 간격을 알 수 없습니다. 첫 관측일에 이미 꽃이 핀 기록이 32건 있었는데, 늦게 관측을 시작한 해인지 구분하려면 "변화 없음"으로 다녀간 날도 필요합니다.</p></li>
+      <li class="r" style="--i:0"><h3>입력할 때 단계 순서와 중복을 확인해 주세요</h3><p>같은 나무, 같은 해, 같은 단계가 두 번 이상 적힌 기록이 301건, 앞 단계가 뒤 단계보다 늦게 적힌 기록이 337건이었습니다.</p></li>
+      <li class="r" style="--i:1"><h3>관측 위치의 해발고도를 함께 주세요</h3><p>기상 관측소와 연결할 때 고도 차이를 확인할 수 없었습니다. 비어 있는 시도, 세부지역, 메모 칸 대신 고도가 있으면 활용도가 높아집니다.</p></li>
+      <li class="r" style="--i:2"><h3>여러 종을 한 번에 받게 해 주세요</h3><p>종별로 파일이 나뉘어 있어 20개를 따로 받아 합쳐야 했습니다. 기간과 종을 골라 한 파일로 받거나 API로 받을 수 있으면 좋겠습니다.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap fd-limits">
+    <div class="sec-head r"><h2>한계</h2></div>
+    <ul class="limits r" style="--i:1">
+      <li>고를 수 있는 지역은 수목원 전시원 10곳뿐입니다. 수목원이 없는 시군구는 가까운 수목원 값을 참고로만 쓸 수 있습니다.</li>
+      <li>관측 간격이 약 일주일이라 2~3일 차이는 측정 오차와 구분하기 어렵습니다.</li>
+      <li>관측 연수가 8년 미만인 수목원·종 조합은 분석과 추천에서 뺐습니다.</li>
+      <li>축제 기간 설계와 수종 추천은 봄꽃만 지원합니다. 단풍 시기를 어느 단계로 볼지는 아직 정하지 않았습니다.</li>
+      <li>예측 정확도가 기존 개화 예보보다 높다고 주장하지 않습니다. 이 도구의 쓰임은 해마다의 흔들림을 기간 설계에 반영하는 데 있습니다.</li>
+    </ul>
+    <h2 style="font-size:1.25rem;margin:4rem 0 1rem">참고한 기사</h2>
+    <ul class="refs r">
+      <li>국립수목원, 17년 식물계절 관측자료 공개 (서울신문, 2026)</li>
+      <li>숲 생태계 변했다, 꽃은 더 일찍 단풍은 더디게 (에너지경제, 2026.2)</li>
+      <li>올해 벚꽃, 평년보다 10일 먼저 개화 (한경비즈니스, 2026.4)</li>
+      <li>이상기온 여파 봄꽃 축제 비상 (한국경제, 2025.3)</li>
+      <li>앞당기니 늦게 피네, 지자체 '꽃 축제' 속앓이 (경향신문, 2024.3)</li>
+    </ul>
+  </div>
+</section>
+</main>
+<footer class="site-foot">
+  <div class="wrap cols">
+    <div>
+      <h2>Season Window</h2>
+      <p>국립수목원 식물계절 관측자료로 봄꽃의 해마다 달라지는 개화를 분석하고, 축제 기간을 정하는 도구를 만든 머신러닝 팀 프로젝트(3인)입니다. 산림청 산림공공데이터 활용사례 공모 출품작.</p>
+    </div>
+    <div>
+      <h2>둘러보기</h2>
+      <ul><li><a href="index.html">처음</a></li><li><a href="findings.html">알아낸 것</a></li><li><a href="tool.html">만든 것</a></li><li><a href="data.html">데이터와 방법</a></li><li><a href="https://github.com/LEE-SEUNG-YEOB/season-window">분석 코드(GitHub)</a></li></ul>
+    </div>
+    <div>
+      <h2>자료 출처</h2>
+      <p>국립수목원 식물계절관측 프로젝트(<a href="https://knpn.nature.go.kr">knpn.nature.go.kr</a>) 관측자료 2009~2025년, 기상청 기상자료개방포털(<a href="https://data.kma.go.kr">data.kma.go.kr</a>) 종관기상관측 일자료. 관측자료의 저작권은 관측한 시민과학자와 국립수목원에 있으며, 이 사이트에는 집계한 결과만 싣습니다.</p>
+    </div>
+  </div>
+</footer>
+<script src="assets/site.js"></script>
+<script>
+const CAL = [{"sp": "생강나무", "start": 75.5, "end": 100.7, "early": 65.0, "late": 115.0, "n": 94.0, "dur": 28.0}, {"sp": "산수유", "start": 75.9, "end": 101.0, "early": 60.1, "late": 114.0, "n": 132.0, "dur": 24.0}, {"sp": "미선나무", "start": 81.0, "end": 97.5, "early": 67.8, "late": 109.0, "n": 109.0, "dur": 15.0}, {"sp": "개나리", "start": 85.0, "end": 109.1, "early": 73.0, "late": 120.0, "n": 135.0, "dur": 24.0}, {"sp": "진달래", "start": 85.8, "end": 106.3, "early": 73.0, "late": 120.0, "n": 121.0, "dur": 21.0}, {"sp": "백목련", "start": 88.3, "end": 102.2, "early": 76.4, "late": 115.0, "n": 125.0, "dur": 14.0}, {"sp": "왕벚나무", "start": 92.6, "end": 106.9, "early": 83.0, "late": 116.0, "n": 119.0, "dur": 14.0}, {"sp": "산철쭉", "start": 107.1, "end": 126.5, "early": 95.4, "late": 137.0, "n": 115.0, "dur": 19.0}, {"sp": "철쭉", "start": 110.3, "end": 125.9, "early": 100.2, "late": 132.8, "n": 83.0, "dur": 15.0}, {"sp": "마가목", "start": 118.7, "end": 131.9, "early": 109.0, "late": 139.4, "n": 57.0, "dur": 13.0}, {"sp": "아까시나무", "start": 131.2, "end": 147.0, "early": 123.0, "late": 154.5, "n": 86.0, "dur": 14.0}];
+(() => {
+  const { el, md } = SW, lo = 55, hi = 162, pct = d => ((d - lo) / (hi - lo) * 100).toFixed(2) + '%';
+  const months = [[60,'3월'],[91,'4월'],[121,'5월'],[152,'6월']];
+  const box = document.getElementById('cal');
+  const axis = el('div','cal-axis'); axis.append(el('div','h',''));
+  const ticks = el('div','ticks'); months.forEach(([d,l]) => { const s = el('span', null, l); s.style.left = pct(d); ticks.append(s); });
+  axis.append(ticks, el('div','h','기간')); box.append(axis);
+  CAL.forEach(r => {
+    const row = el('div','cal-row'), t = el('div','track');
+    months.forEach(([d]) => { const g = el('i','grid'); g.style.left = pct(d); t.append(g); });
+    const band = el('i','band m'); band.style.left = pct(r.early); band.style.width = `calc(${pct(r.late)} - ${pct(r.early)})`;
+    const bar = el('i','bar m gx'); bar.style.transformOrigin = '0 50%'; bar.style.setProperty('--i', 2); bar.style.left = pct(r.start); bar.style.width = `calc(${pct(r.end)} - ${pct(r.start)})`;
+    t.title = `${r.sp}: 평균 ${md(r.start)}~${md(r.end)}, 범위 ${md(r.early)}~${md(r.late)}`;
+    t.append(band, bar);
+    row.append(el('div','cal-name', r.sp), t, el('div','cal-dur', `${Math.round(r.dur)}일`));
+    box.append(row);
+  });
+  document.getElementById('cal-table').innerHTML = '<thead><tr><th>종</th><th>평균 개화시작</th><th>평균 낙화</th><th>이른 해 시작</th><th>늦은 해 끝</th><th class="n">기간</th></tr></thead><tbody>' +
+    CAL.map(r => `<tr><td>${r.sp}</td><td>${md(r.start)}</td><td>${md(r.end)}</td><td>${md(r.early)}</td><td>${md(r.late)}</td><td class="n">${Math.round(r.dur)}일</td></tr>`).join('') + '</tbody>';
+})();
+</script>
+</body>
+</html>

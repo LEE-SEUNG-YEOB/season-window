@@ -7,6 +7,8 @@
 - eda_gap_by_year.csv     : 연도별 간격 (전국 평균)
 - eda_year_anomaly.csv    : 단계별 연도 편차 (전국 평균)
 - eda_trends.csv          : 단계별 추세 (10년당 일수)
+- eda_fixed_day_hit_loyo.csv / eda_fixed_day_hit_loyo_species.csv : 고정 날짜 적중률을 한 해씩 빼고 검증한 값
+- eda_gap_prediction_loyo.csv : 먼저 핀 종의 날짜로 다음 종을 예측했을 때와 평균으로 예측했을 때의 오차 비교
 """
 import math
 import numpy as np
@@ -91,6 +93,47 @@ gaps.to_csv(C.TABLES / "eda_species_gaps.csv", index=False, encoding="utf-8-sig"
 gy = pd.DataFrame(by_year).round(1)
 gy.to_csv(C.TABLES / "eda_gap_by_year.csv", encoding="utf-8-sig")
 
+# 3-1. 고정 날짜 적중률 검증 (한 해씩 빼기) ------------------------------
+# 2절의 적중률은 17년을 다 보고 가장 유리한 날을 고른 값이라 실제보다 높다.
+# 여기서는 한 해를 빼고 나머지 해로 날짜를 고른 뒤, 뺀 해에 꽃이 피어 있었는지 본다.
+rows = []
+for (site, sp), g in b.groupby(["수목원", "종"]):
+    if len(g) < C.MIN_YEARS:
+        continue
+    days = np.arange(1, 201)
+    on, off = g["개화시작"].to_numpy()[:, None], g["낙화90~100%"].to_numpy()[:, None]
+    inb = (days >= on) & (days <= off)
+    held = [inb[i, days[np.delete(inb, i, axis=0).mean(axis=0).argmax()] - 1] for i in range(len(g))]
+    rows.append({"수목원": site, "종": sp, "관측연수": len(g), "사후_적중률": round(inb.mean(axis=0).max(), 3),
+                 "검증_적중률": round(float(np.mean(held)), 3)})
+hit_cv = pd.DataFrame(rows)
+hit_cv_sp = hit_cv.groupby("종").agg(수목원수=("수목원", "size"), 사후_적중률=("사후_적중률", "mean"),
+                                    검증_적중률=("검증_적중률", "mean")).round(3).reset_index()
+hit_cv_sp = hit_cv_sp.merge(hit_sp[["종", "개화시작_표준편차", "개화기간_중앙값"]], on="종").sort_values("검증_적중률")
+hit_cv.to_csv(C.TABLES / "eda_fixed_day_hit_loyo.csv", index=False, encoding="utf-8-sig")
+hit_cv_sp.to_csv(C.TABLES / "eda_fixed_day_hit_loyo_species.csv", index=False, encoding="utf-8-sig")
+
+# 3-2. 먼저 핀 종으로 다음 종 예측 (한 해씩 빼기) --------------------------
+# 평균 예측: 그 수목원에서 다음 종의 평균 날짜(뺀 해 제외)
+# 간격 예측: 그해 먼저 핀 종의 날짜 + 두 종의 평균 간격(뺀 해 제외)
+rows = []
+for a, c in PAIRS + [("생강나무", "왕벚나무")]:
+    d = F[[a, c]].dropna().reset_index()
+    d = d[d.groupby("수목원")["연도"].transform("count") >= C.MIN_YEARS].reset_index(drop=True)
+    em, eg = [], []
+    for _, r in d.iterrows():
+        tr = d[(d["수목원"] == r["수목원"]) & (d["연도"] != r["연도"])]
+        em.append(abs(r[c] - tr[c].mean()))
+        eg.append(abs(r[c] - (r[a] + (tr[c] - tr[a]).mean())))
+    d["em"], d["eg"] = em, eg
+    yy = d.groupby("연도")[["em", "eg"]].mean()
+    rows.append({"먼저피는종": a, "나중피는종": c, "관측수": len(d), "평균간격": round((d[c] - d[a]).mean(), 1),
+                 "평균예측_MAE": round(float(np.mean(em)), 2), "간격예측_MAE": round(float(np.mean(eg)), 2),
+                 "차이": round(float(np.mean(eg) - np.mean(em)), 2),
+                 "간격예측이_나은_해": int((yy["eg"] < yy["em"]).sum()), "해수": len(yy)})
+gap_cv = pd.DataFrame(rows).sort_values("평균간격")
+gap_cv.to_csv(C.TABLES / "eda_gap_prediction_loyo.csv", index=False, encoding="utf-8-sig")
+
 # 4. 연도 편차와 추세 ---------------------------------------------------
 ALL16 = C.SPRING_SPECIES + C.AUTUMN_SPECIES
 STAGES = {"개화50%이상": C.SPRING_SPECIES, "개엽시작": ALL16, "단풍50%이상": ALL16,
@@ -117,5 +160,6 @@ trd.to_csv(C.TABLES / "eda_trends.csv", index=False, encoding="utf-8-sig")
 
 pd.set_option("display.width", 250); pd.set_option("display.max_rows", 200)
 print(dur_sp.to_string(index=False)); print(dur_site.to_string(index=False))
+print(hit_cv_sp.to_string(index=False)); print(gap_cv.to_string(index=False))
 print(f"개화기간과 개화시작 편차: r={r_dur_onset:.2f}, 시작이 하루 늦으면 기간 {slope_dur_onset:.2f}일")
 print(hit_sp.to_string(index=False)); print(gaps.to_string(index=False)); print(gy.T.to_string()); print(an.T.to_string()); print(trd.to_string(index=False))

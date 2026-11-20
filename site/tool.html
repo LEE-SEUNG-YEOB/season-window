@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>만든 것 | Season Window</title>
+<meta name="description" content="예상 개화일과 범위, 축제 기간의 겹침, 축제 기간에 맞는 수종 추천. 국립수목원 실제 계산 결과로 만든 예시 화면.">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:title" content="만든 것 | Season Window">
+<meta property="og:description" content="예상 개화일과 범위, 축제 기간의 겹침, 축제 기간에 맞는 수종 추천. 국립수목원 실제 계산 결과로 만든 예시 화면.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox='0 0 32 32' aria-hidden='true'><rect x='2' y='5' width='28' height='24' rx='6' fill='%2314703f'/><rect x='6' y='15' width='20' height='5' rx='2.5' fill='%23c9ead6'/><rect x='11' y='15' width='9' height='5' rx='2.5' fill='%23fff'/><path d='M9 2.5v5M23 2.5v5' stroke='%230b4a2b' stroke-width='2.5' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+.app{border:1px solid transparent;border-radius:var(--r-lg);background:#fff;overflow:hidden;box-shadow:var(--shadow-border),0 40px 80px -40px rgb(11 74 43 / .35)}
+.app-top{display:flex;align-items:center;gap:.75rem;padding:.875rem 1.5rem;border-bottom:1px solid var(--rule-soft);background:var(--bg-soft);flex-wrap:wrap}
+.app-top b{font-weight:750}
+.app-top .chip{margin-left:auto;background:#fff;border:1px solid var(--rule);color:var(--ink-2);border-radius:999px;padding:.2rem .75rem;font-size:.8125rem}
+.tabs{position:relative;display:flex;gap:.25rem;padding:.75rem 1.5rem 0;border-bottom:1px solid var(--rule-soft);overflow-x:auto;scrollbar-width:none}
+.tab-ind{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--g700);clip-path:inset(0 var(--r,100%) 0 var(--l,0px) round 3px 3px 0 0);transition:clip-path 400ms cubic-bezier(0.2,0,0,1);pointer-events:none}
+@media (prefers-reduced-motion:reduce){.tab-ind{transition-duration:0s}}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{all:unset;cursor:pointer;position:relative;padding:.75rem .875rem 1rem;font-weight:650;font-size:.9375rem;color:var(--ink-2);white-space:nowrap;border-radius:8px 8px 0 0;transition-property:color,background-color,scale;transition-duration:150ms;transition-timing-function:ease-out}
+.tabs button:not(:disabled):active{scale:.96}
+.tabs button[aria-selected="true"]{color:var(--ink)}
+.tabs button:focus-visible{outline:2px solid var(--g700);outline-offset:-2px}
+@media (hover:hover) and (pointer:fine){.tabs button:hover{color:var(--ink);background:var(--bg-soft)}}
+.panel{padding:clamp(1.25rem,3vw,2.25rem) clamp(1.25rem,3vw,2.25rem) clamp(1.75rem,3vw,2.5rem)}
+.panel[hidden]{display:none}
+.panel{transition:opacity 150ms ease-out}
+@starting-style{.panel{opacity:0}}
+.panel-desc{color:var(--ink-2);margin:0 0 1.5rem;max-width:44rem;font-size:.9375rem}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8.25rem),1fr));gap:.75rem;margin:0 0 2rem}
+.fields div{min-width:0}
+.fields dt{font-size:.8125rem;color:var(--ink-2);margin-bottom:.375rem}
+.fields dd{margin:0;display:flex;align-items:center;justify-content:space-between;gap:.5rem;min-height:2.75rem;padding:0 .875rem;border:1px solid var(--rule);border-radius:10px;background:#fff;font-weight:600;font-size:.9375rem}
+.fields dd svg{width:1rem;height:1rem;color:var(--ink-2);flex:none}
+.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));gap:1rem;margin-bottom:1.75rem}
+@media (max-width:40rem){.res{gap:.625rem}.res > div{padding:1rem 1.125rem}.fields dd{font-size:.875rem;padding:0 .75rem}}
+.res > div{padding:1.25rem 1.375rem;border-radius:var(--r-md);background:var(--bg-soft)}
+.res .k{font-size:.875rem;color:var(--ink-2);margin:0 0 .5rem}
+.res .v{font-size:clamp(1.75rem,1.3rem + 1.4vw,2.375rem);font-weight:820;letter-spacing:-.03em;line-height:1.1;color:var(--g900);font-variant-numeric:tabular-nums}
+.res .s{font-size:.875rem;color:var(--ink-2);margin:.5rem 0 0}
+.res > div.main{background:var(--g900);color:#fff}
+.res > div.main .k,.res > div.main .s{color:#b9dcc6}
+.res > div.main .v{color:#fff}
+
+/* 예측 범위 */
+.rng{position:relative;margin:2.75rem 0 0}
+.rng-track{position:relative;height:3rem;border-radius:12px;background:var(--bg-soft)}
+.rng-grid{position:absolute;top:0;bottom:0;width:1px;background:var(--rule)}
+.rng-band{position:absolute;top:.75rem;bottom:.75rem;border-radius:8px;background:var(--g200)}
+.rng-pt{position:absolute;top:.25rem;bottom:.25rem;width:4px;margin-left:-2px;border-radius:2px;background:var(--g700)}
+.rng-mean{position:absolute;top:.25rem;bottom:.25rem;width:0;border-left:2px dashed var(--ink-2)}
+.rng-tag{position:absolute;bottom:calc(100% + .375rem);transform:translateX(-50%);font-size:.8125rem;font-weight:700;white-space:nowrap}
+.rng-tag.mean{font-weight:600;color:var(--ink-2)}
+.rng-ticks{position:relative;height:1.5rem;margin-top:.5rem;font-size:.8125rem;color:var(--ink-2)}
+.rng-ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+
+/* 일수 그래프 */
+.days{margin-top:.5rem;border-top:1px solid var(--rule-soft);padding-top:1.75rem}
+.days h3{font-size:1.0625rem}
+.days-read{display:flex;flex-wrap:wrap;gap:.5rem 2rem;align-items:baseline;margin:.75rem 0 1rem}
+.days-read b{font-size:1.75rem;font-weight:800;letter-spacing:-.02em;color:var(--g700);font-variant-numeric:tabular-nums}
+.days-read span{font-size:.875rem;color:var(--ink-2)}
+.days-read .alt b{color:var(--ink)}
+.slider{display:flex;align-items:center;gap:1rem;margin:.25rem 0 1rem}
+.slider label{font-size:.875rem;font-weight:650;white-space:nowrap}
+.slider output{font-weight:750;font-variant-numeric:tabular-nums;min-width:3rem}
+input[type=range]{flex:1;accent-color:var(--g700);height:2.75rem;cursor:pointer}
+#days-svg{display:block;width:100%;overflow:visible}
+#days-svg text{font-family:var(--font);font-size:12px;fill:var(--ink-2)}
+#days-svg .lbl{font-size:12.5px;font-weight:650}
+
+/* 수종 추천 */
+.rank{width:100%}
+.rank td{vertical-align:middle}
+.rank .no{color:var(--ink-2);font-variant-numeric:tabular-nums;width:2.5rem}
+.rank .sp{font-weight:650;white-space:nowrap}
+.fit{display:flex;align-items:center;gap:.75rem;min-width:13rem}
+.fit .bar{flex:1;height:.5rem;border-radius:4px;background:var(--rule-soft);overflow:hidden;min-width:5rem}
+.fit .bar i{display:block;height:100%;border-radius:4px;background:var(--g600);transform-origin:left;transform:scaleX(var(--f))}
+.rank.wait .fit .bar i{transform:scaleX(0)}
+.rank.grow .fit .bar i{transition:transform 450ms cubic-bezier(0.2,0,0,1)}
+@media (prefers-reduced-motion:reduce){.rank.wait .fit .bar i{transform:scaleX(var(--f))}}
+.fit span{font-size:.875rem;font-variant-numeric:tabular-nums;white-space:nowrap;width:5.5rem}
+.rank tr.zero .sp,.rank tr.zero td{color:var(--ink-2)}
+
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:2rem;margin-top:3rem}
+.feat h3{font-size:1.0625rem;margin-bottom:.5rem}
+.feat p{color:var(--ink-2);font-size:.9375rem;margin:0}
+.verdict{font-weight:700}
+.verdict.yes{color:var(--g700)}
+@media (max-width:40rem){
+  .app-top{padding:.75rem 1rem}
+  .tabs{padding:.5rem .75rem 0}
+  .rank{min-width:36rem}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="5" width="28" height="24" rx="6" fill="#14703f"/><rect x="6" y="15" width="20" height="5" rx="2.5" fill="#c9ead6"/><rect x="11" y="15" width="9" height="5" rx="2.5" fill="#fff"/><path d="M9 2.5v5M23 2.5v5" stroke="#0b4a2b" stroke-width="2.5" stroke-linecap="round"/></svg>Season Window</a>
+    <nav class="site-nav" aria-label="주요 메뉴"><ul><li><a href="findings.html">알아낸 것</a></li><li><a href="tool.html" aria-current="page">만든 것</a></li><li><a href="data.html">데이터와 방법</a></li></ul></nav>
+  </div>
+</header>
+<main id="main">
+<section class="page-hero">
+  <div class="wrap">
+    <h1 class="page-title"><span class="w" style="--w:0">축제를</span> <span class="w" style="--w:1">정하는</span> <span class="w" style="--w:2">사람을</span> <span class="w" style="--w:3">위한</span> <span class="w" style="--w:4">세</span> <span class="w" style="--w:5">가지</span> <span class="w" style="--w:6">기능</span></h1>
+    <p class="lead e" style="--i:6">수목원 전시원 10곳 가운데 하나를 고르면, 예상 개화일을 범위로 보여 주고, 정한 축제 기간이 지난 해에 몇 번 꽃과 겹쳤는지 세고, 그 기간에 잘 맞는 수종을 골라 줍니다.</p>
+  </div>
+</section>
+
+<section style="padding-top:clamp(2.5rem,5vw,4rem)">
+  <div class="wrap">
+    <div class="app e" style="--i:7">
+      <div class="app-top"><b>Season Window</b><span class="muted">봄꽃 축제 기간 설계</span><span class="chip">예시 화면</span></div>
+      <div class="tabs" role="tablist" aria-label="기능">
+        <button role="tab" id="t1" aria-controls="p1" aria-selected="true">개화일 예측</button>
+        <button role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1">축제 기간 설계</button>
+        <button role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1">수종 추천</button>
+        <i class="tab-ind" aria-hidden="true"></i>
+      </div>
+
+      <div class="panel" role="tabpanel" id="p1" aria-labelledby="t1">
+        <p class="panel-desc">과거 평균에 최근 5년 동안 전국이 함께 움직인 경향을 더해 예상일을 내고, 지난 해의 오차로 80% 범위를 붙입니다. 3월 기온을 가정해 넣으면 그만큼 당기거나 늦춥니다.</p>
+        <dl class="fields"><div><dt>수목원</dt><dd>국립수목원<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></dd></div><div><dt>수종</dt><dd>왕벚나무<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></dd></div><div><dt>예측할 해</dt><dd>2027년<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></dd></div><div><dt>3월 기온 가정</dt><dd>넣지 않음<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></dd></div></dl>
+        <div class="res">
+          <div class="main"><p class="k">예상 개화시작</p><div class="v" id="fc-date"></div><p class="s" id="fc-diff"></p></div>
+          <div><p class="k">80% 범위</p><div class="v" id="fc-range"></div><p class="s">열 해 중 여덟 해는 이 안에 피었습니다</p></div>
+        </div>
+        <div class="rng r" aria-hidden="true"><div class="rng-track" id="rng"></div><div class="rng-ticks" id="rng-ticks"></div></div>
+        <p class="note" id="rng-cap"></p>
+      </div>
+
+      <div class="panel" role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+        <p class="panel-desc">정한 축제 기간이 꽃이 피어 있던 기간과 겹친 해를 지난 기록에서 세고, 최근 경향을 반영한 겹칠 가능성과 같은 일수로 더 잘 맞는 기간을 함께 보여 줍니다.</p>
+        <dl class="fields"><div><dt>수목원</dt><dd>국립수목원<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></dd></div><div><dt>수종</dt><dd>왕벚나무<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></dd></div><div><dt>축제 시작일</dt><dd>4월 10일<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4" stroke-linecap="round"/></svg></dd></div><div><dt>축제 일수</dt><dd>9일<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></dd></div></dl>
+        <div class="res">
+          <div class="main"><p class="k">지난 해 실제 겹침</p><div class="v" id="ov-head"></div><p class="s">관측된 해 가운데 축제 기간에 꽃이 핀 해</p></div>
+          <div><p class="k">최근 경향을 반영한 가능성</p><div class="v" id="ov-prob"></div><p class="s">근사값</p></div>
+          <div><p class="k">같은 9일 가운데 가장 좋은 기간</p><div class="v" id="ov-best"></div><p class="s" id="ov-best-p"></p></div>
+        </div>
+        <div class="days">
+          <h3>축제를 며칠로 하면 충분할까요?</h3>
+          <div class="slider"><label for="days-in">축제 일수</label><input id="days-in" type="range" min="1" max="30" step="1" value="9"><output id="days-out" for="days-in">9일</output></div>
+          <div class="days-read" aria-live="polite"><div><b id="dr-a"></b> <span>4월 10일에 시작할 때</span></div><div class="alt"><b id="dr-b"></b> <span id="dr-b-l">가장 좋은 날에 시작할 때</span></div></div>
+          <svg id="days-svg" role="img" aria-labelledby="days-cap"></svg>
+          <p class="note" id="days-cap">축제 일수에 따른 겹칠 가능성(최근 경향 반영, 근사). 일수를 늘릴수록 오르지만 오르는 폭은 줄어듭니다.</p>
+        </div>
+      </div>
+
+      <div class="panel" role="tabpanel" id="p3" aria-labelledby="t3" hidden>
+        <p class="panel-desc">날짜를 바꿀 수 없는 축제라면, 그 기간에 꽃이 피어 있던 해가 가장 많은 수종을 순서대로 보여 줍니다. 비율이 같으면 해마다 덜 흔들리는 수종이 앞입니다.</p>
+        <dl class="fields"><div><dt>수목원</dt><dd>국립수목원<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></dd></div><div><dt>축제 시작일</dt><dd>4월 5일<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4" stroke-linecap="round"/></svg></dd></div><div><dt>축제 마지막 날</dt><dd>4월 13일<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4" stroke-linecap="round"/></svg></dd></div></dl>
+        <div class="tbl"><table class="rank wait"><thead><tr><th class="no">순위</th><th>수종</th><th>축제 기간에 꽃이 핀 해</th><th>평균 개화 기간</th><th class="n">안정성</th></tr></thead><tbody id="rank-body"></tbody></table></div>
+        <p class="note">안정성은 해마다 덜 흔들릴수록 높은 0~100점입니다. 관측이 8년 이상인 수종만 보여 줍니다.</p>
+      </div>
+    </div>
+    <p class="note">국립수목원·왕벚나무로 실제 계산한 결과를 옮겨 그린 화면입니다. 실제 도구는 수목원, 수종, 날짜를 바꿔 가며 계산합니다.</p>
+
+    <div class="feat">
+      <div class="r"><h3>날짜 하나가 아니라 범위로</h3><p>개화는 해마다 6일 안팎 흔들리기 때문에, 예상일과 함께 지난 해의 오차로 만든 범위를 보여 줍니다.</p></div>
+      <div class="r" style="--i:1"><h3>확률보다 먼저 실제 기록</h3><p>"84%"보다 "9해 중 7해"가 담당자에게 더 분명합니다. 지난 기록을 먼저 보여 주고, 최근 경향을 반영한 값은 참고로 붙입니다.</p></div>
+      <div class="r" style="--i:2"><h3>바꿀 수 없으면 수종을 바꾸기</h3><p>축제 날짜가 정해져 있다면, 그 기간에 꽃이 피어 있을 가능성이 높은 나무를 고르는 쪽이 낫습니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="soft">
+  <div class="wrap">
+    <div class="sec-head r">
+      <h2>예측 방법은 검증으로 골랐습니다</h2>
+      <p>랜덤포레스트를 포함한 네 가지 방법을 연도 단위로 검증했고, 채택 규칙(기준보다 평균 오차가 0.5일 이상 작고 대부분의 해에서 나을 것)은 결과를 보기 전에 정했습니다. 2월 말까지 알 수 있는 기상으로는 과거 평균보다 뚜렷이 나아지지 않았습니다.</p>
+    </div>
+    <div class="tbl r" style="max-width:56rem;--i:1">
+      <table>
+        <thead><tr><th>방법</th><th>검증 방식</th><th class="n">평균 오차</th><th class="n">기준</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr><td>2월 기온 직선 모델</td><td>한 해씩 떼어 두기</td><td class="n">4.95일</td><td class="n">5.18일</td><td class="verdict">기각</td></tr>
+          <tr><td>랜덤포레스트 (2월 말까지의 기상 6개)</td><td>한 해씩 떼어 두기</td><td class="n">5.02일</td><td class="n">5.18일</td><td class="verdict">기각</td></tr>
+          <tr><td>과거 평균 + 최근 5년 경향</td><td>앞으로 가는 검증</td><td class="n">4.75일</td><td class="n">5.45일</td><td class="verdict yes">채택</td></tr>
+          <tr><td>참고: 3월 말 기온까지 안다면</td><td>한 해씩 떼어 두기</td><td class="n">3.94일</td><td class="n">5.21일</td><td>가정 입력으로 제공</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="max-width:56rem">기준은 과거 평균만으로 맞힌 오차입니다. "앞으로 가는 검증"은 2015~2025년 각 해를 그 이전 해만으로 맞힌 결과이고, 11해 중 9해에서 기준보다 나았습니다.</p>
+  </div>
+</section>
+</main>
+<footer class="site-foot">
+  <div class="wrap cols">
+    <div>
+      <h2>Season Window</h2>
+      <p>국립수목원 식물계절 관측자료로 봄꽃의 해마다 달라지는 개화를 분석하고, 축제 기간을 정하는 도구를 만든 머신러닝 팀 프로젝트(3인)입니다. 산림청 산림공공데이터 활용사례 공모 출품작.</p>
+    </div>
+    <div>
+      <h2>둘러보기</h2>
+      <ul><li><a href="index.html">처음</a></li><li><a href="findings.html">알아낸 것</a></li><li><a href="tool.html">만든 것</a></li><li><a href="data.html">데이터와 방법</a></li><li><a href="https://github.com/LEE-SEUNG-YEOB/season-window">분석 코드(GitHub)</a></li></ul>
+    </div>
+    <div>
+      <h2>자료 출처</h2>
+      <p>국립수목원 식물계절관측 프로젝트(<a href="https://knpn.nature.go.kr">knpn.nature.go.kr</a>) 관측자료 2009~2025년, 기상청 기상자료개방포털(<a href="https://data.kma.go.kr">data.kma.go.kr</a>) 종관기상관측 일자료. 관측자료의 저작권은 관측한 시민과학자와 국립수목원에 있으며, 이 사이트에는 집계한 결과만 싣습니다.</p>
+    </div>
+  </div>
+</footer>
+<script src="assets/site.js"></script>
+<script>
+const T = {"forecast": {"pred": 105.6, "lo": 96.1, "hi": 115.2, "mean": 109.3, "n": 17, "date": "2027-04-16", "low": "2027-04-06", "high": "2027-04-25"}, "overlap": {"head": "9해 중 7해 겹침", "prob": 0.844, "best": {"start_date": "2027-04-13", "end_date": "2027-04-21", "prob": 0.882}, "length": 14.0, "n": 9, "k": 7, "bydays": [{"일수": 1, "확률": 0.485, "최적기간_확률": 0.692}, {"일수": 2, "확률": 0.539, "최적기간_확률": 0.724}, {"일수": 3, "확률": 0.592, "최적기간_확률": 0.752}, {"일수": 4, "확률": 0.642, "최적기간_확률": 0.779}, {"일수": 5, "확률": 0.691, "최적기간_확률": 0.803}, {"일수": 6, "확률": 0.735, "최적기간_확률": 0.826}, {"일수": 7, "확률": 0.776, "최적기간_확률": 0.846}, {"일수": 8, "확률": 0.812, "최적기간_확률": 0.866}, {"일수": 9, "확률": 0.844, "최적기간_확률": 0.882}, {"일수": 10, "확률": 0.871, "최적기간_확률": 0.897}, {"일수": 11, "확률": 0.894, "최적기간_확률": 0.911}, {"일수": 12, "확률": 0.913, "최적기간_확률": 0.923}, {"일수": 13, "확률": 0.929, "최적기간_확률": 0.933}, {"일수": 14, "확률": 0.941, "최적기간_확률": 0.943}, {"일수": 15, "확률": 0.951, "최적기간_확률": 0.951}, {"일수": 16, "확률": 0.959, "최적기간_확률": 0.959}, {"일수": 17, "확률": 0.964, "최적기간_확률": 0.965}, {"일수": 18, "확률": 0.969, "최적기간_확률": 0.971}, {"일수": 19, "확률": 0.972, "최적기간_확률": 0.975}, {"일수": 20, "확률": 0.974, "최적기간_확률": 0.979}, {"일수": 21, "확률": 0.976, "최적기간_확률": 0.983}, {"일수": 22, "확률": 0.977, "최적기간_확률": 0.986}, {"일수": 23, "확률": 0.977, "최적기간_확률": 0.988}, {"일수": 24, "확률": 0.978, "최적기간_확률": 0.99}, {"일수": 25, "확률": 0.978, "최적기간_확률": 0.992}, {"일수": 26, "확률": 0.978, "최적기간_확률": 0.993}, {"일수": 27, "확률": 0.978, "최적기간_확률": 0.995}, {"일수": 28, "확률": 0.979, "최적기간_확률": 0.996}, {"일수": 29, "확률": 0.979, "최적기간_확률": 0.997}, {"일수": 30, "확률": 0.979, "최적기간_확률": 0.997}]}, "ranking": [{"종": "미선나무", "적합도": 1.0, "겹친해수": 10, "관측연수": 10, "안정성점수": 64, "개화기간_중앙값": 16.0, "평균_개화시작": "03-31", "평균_낙화": "04-16"}, {"종": "산수유", "적합도": 1.0, "겹친해수": 9, "관측연수": 9, "안정성점수": 44, "개화기간_중앙값": 28.0, "평균_개화시작": "03-27", "평균_낙화": "04-24"}, {"종": "생강나무", "적합도": 0.88, "겹친해수": 7, "관측연수": 8, "안정성점수": 0, "개화기간_중앙값": 28.0, "평균_개화시작": "03-22", "평균_낙화": "04-19"}, {"종": "개나리", "적합도": 0.82, "겹친해수": 9, "관측연수": 11, "안정성점수": 47, "개화기간_중앙값": 21.0, "평균_개화시작": "04-05", "평균_낙화": "04-26"}, {"종": "왕벚나무", "적합도": 0.78, "겹친해수": 7, "관측연수": 9, "안정성점수": 50, "개화기간_중앙값": 14.0, "평균_개화시작": "04-14", "평균_낙화": "04-28"}, {"종": "진달래", "적합도": 0.64, "겹친해수": 7, "관측연수": 11, "안정성점수": 42, "개화기간_중앙값": 19.0, "평균_개화시작": "04-09", "평균_낙화": "04-28"}, {"종": "백목련", "적합도": 0.62, "겹친해수": 5, "관측연수": 8, "안정성점수": 39, "개화기간_중앙값": 15.0, "평균_개화시작": "04-14", "평균_낙화": "04-29"}, {"종": "산철쭉", "적합도": 0.2, "겹친해수": 2, "관측연수": 10, "안정성점수": 59, "개화기간_중앙값": 16.5, "평균_개화시작": "04-20", "평균_낙화": "05-07"}, {"종": "아까시나무", "적합도": 0.0, "겹친해수": 0, "관측연수": 8, "안정성점수": 71, "개화기간_중앙값": 14.0, "평균_개화시작": "05-19", "평균_낙화": "06-02"}, {"종": "철쭉", "적합도": 0.0, "겹친해수": 0, "관측연수": 12, "안정성점수": 57, "개화기간_중앙값": 14.0, "평균_개화시작": "04-28", "평균_낙화": "05-12"}]};
+const { el, reduce } = SW;
+const iso = s => { const [y,m,d] = s.split('-').map(Number); return `${m}월 ${d}일`; };
+const doy = s => { const [y,m,d] = s.split('-').map(Number); return (Date.UTC(y,m-1,d) - Date.UTC(y,0,1)) / 864e5 + 1; };
+const lab = d => { const x = new Date(Date.UTC(2027,0,1) + (d-1)*864e5); return `${x.getUTCMonth()+1}월 ${x.getUTCDate()}일`; };
+
+/* 탭 */
+(() => {
+  const tabs = [...document.querySelectorAll('[role=tab]')];
+  function sel(t, focus){
+    tabs.forEach(x => { const on = x === t; x.setAttribute('aria-selected', on); x.tabIndex = on ? 0 : -1;
+      const p = document.getElementById(x.getAttribute('aria-controls')); p.hidden = !on; });
+    if (focus) t.focus();
+    placeInd(t);
+    if (t.id === 't2') { drawDays(); drawIn(); }
+    if (t.id === 't3') growFit();
+  }
+  const ind = document.querySelector('.tab-ind'), list = document.querySelector('.tabs');
+  function placeInd(t){
+    const W = list.scrollWidth, l = t.offsetLeft + 14, r = W - (t.offsetLeft + t.offsetWidth - 14);
+    ind.style.setProperty('--l', l + 'px'); ind.style.setProperty('--r', r + 'px');
+  }
+  requestAnimationFrame(() => { ind.style.transition = 'none'; placeInd(tabs[0]); requestAnimationFrame(() => ind.style.transition = ''); });
+  window.addEventListener('resize', () => placeInd(tabs.find(x => x.getAttribute('aria-selected') === 'true')));
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => sel(t));
+    t.addEventListener('keydown', e => {
+      const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (k) { e.preventDefault(); sel(tabs[(i + k + tabs.length) % tabs.length], true); }
+      if (e.key === 'Home') { e.preventDefault(); sel(tabs[0], true); }
+      if (e.key === 'End') { e.preventDefault(); sel(tabs[tabs.length-1], true); }
+    });
+  });
+  window.addEventListener('DOMContentLoaded', () => {
+    if (location.hash === '#period') sel(tabs[1]);
+    if (location.hash === '#species') sel(tabs[2]);
+  });
+})();
+
+/* 1. 예측 */
+(() => {
+  const F = T.forecast, LO = 87, HI = 124, pct = d => ((d - LO) / (HI - LO) * 100).toFixed(2) + '%';
+  const pd = Math.round(F.pred);
+  document.getElementById('fc-date').textContent = iso(F.date);
+  document.getElementById('fc-diff').textContent = `17년 평균(${lab(Math.round(F.mean))})보다 ${(F.mean - F.pred).toFixed(1)}일 빠름, 최근 5년 경향 반영`;
+  document.getElementById('fc-range').textContent = `${iso(F.low).replace('월 ','/').replace('일','')} ~ ${iso(F.high).replace('월 ','/').replace('일','')}`;
+  const tr = document.getElementById('rng'), tk = document.getElementById('rng-ticks');
+  [[91,'4월 1일'],[101,'4월 11일'],[111,'4월 21일'],[121,'5월 1일']].forEach(([d,l]) => {
+    const g = el('i','rng-grid'); g.style.left = pct(d); tr.append(g);
+    const s = el('span', null, l); s.style.left = pct(d); tk.append(s);
+  });
+  const b = el('i','rng-band m gx'); b.style.transformOrigin = ((F.pred - doy(F.low)) / (doy(F.high) - doy(F.low)) * 100).toFixed(1) + '% 50%'; b.style.left = pct(doy(F.low)); b.style.width = `calc(${pct(doy(F.high))} - ${pct(doy(F.low))})`; tr.append(b);
+  const m = el('i','rng-mean m'); m.style.setProperty('--i', 2); m.style.left = pct(F.mean); tr.append(m);
+  const p = el('i','rng-pt m pop'); p.style.left = pct(F.pred); tr.append(p);
+  const t1 = el('span','rng-tag m', '예상 ' + lab(pd).replace('월 ','/').replace('일','')); t1.style.left = pct(F.pred); tr.append(t1);
+  const t2 = el('span','rng-tag mean m', '평균'); t2.style.setProperty('--i', 2); t2.style.left = `calc(${pct(F.mean)} + 1.25rem)`; tr.append(t2);
+  document.getElementById('rng-cap').textContent = `진한 선은 예상일, 옅은 띠는 80% 범위, 점선은 17년 평균입니다. 과거 ${F.n}해의 기록으로 계산했습니다.`;
+})();
+
+/* 2. 축제 기간 */
+const O = T.overlap;
+document.getElementById('ov-head').textContent = `${O.n}해 중 ${O.k}해`;
+document.getElementById('ov-prob').textContent = Math.round(O.prob * 100) + '%';
+document.getElementById('ov-best').textContent = `${iso(O.best.start_date).replace('월 ','/').replace('일','')} ~ ${iso(O.best.end_date).replace('월 ','/').replace('일','')}`;
+document.getElementById('ov-best-p').textContent = `가능성 ${Math.round(O.best.prob * 100)}%, 4월 10일 시작보다 ${Math.round((O.best.prob - O.prob) * 100)}%포인트 높음`;
+const inp = document.getElementById('days-in'), out = document.getElementById('days-out');
+function readDays(){
+  const n = +inp.value, r = O.bydays.find(x => x['일수'] === n);
+  out.textContent = n + '일';
+  document.getElementById('dr-a').textContent = Math.round(r['확률'] * 100) + '%';
+  document.getElementById('dr-b').textContent = Math.round(r['최적기간_확률'] * 100) + '%';
+  drawDays();
+}
+function drawDays(){
+  const svg = document.getElementById('days-svg'); if (!svg.getBoundingClientRect().width) return;
+  const W = svg.getBoundingClientRect().width, H = W < 500 ? 220 : 260, m = {l:40, r:W < 500 ? 12 : 120, t:14, b:30};
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H);
+  const x = d => m.l + (d - 1) / 29 * (W - m.l - m.r), y = v => m.t + (1 - (v - .4) / .6) * (H - m.t - m.b);
+  const n = +inp.value, B = O.bydays;
+  const path = k => B.map((r, i) => `${i ? 'L' : 'M'}${x(r['일수']).toFixed(1)},${y(r[k]).toFixed(1)}`).join('');
+  let s = '';
+  [.4,.6,.8,1].forEach(v => s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="#ebf2ed"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v*100}%</text>`);
+  [1,7,14,21,30].forEach(d => s += `<text x="${x(d)}" y="${H - 8}" text-anchor="middle">${d}일</text>`);
+  s += `<line x1="${x(n)}" x2="${x(n)}" y1="${m.t}" y2="${H - m.b}" stroke="#8fd0aa" stroke-width="1.5"/>`;
+  s += `<path d="${path('최적기간_확률')}" fill="none" stroke="#4b5e53" stroke-width="2" stroke-dasharray="5 4"/>`;
+  s += `<path d="${path('확률')}" fill="none" stroke="#14703f" stroke-width="2.5"/>`;
+  const r = B.find(z => z['일수'] === n);
+  s += `<circle cx="${x(n)}" cy="${y(r['최적기간_확률'])}" r="5" fill="#fff" stroke="#4b5e53" stroke-width="2"/>`;
+  s += `<circle cx="${x(n)}" cy="${y(r['확률'])}" r="6" fill="#14703f" stroke="#fff" stroke-width="2"/>`;
+  if (W >= 500) {
+    const last = B[B.length-1];
+    s += `<text class="lbl" x="${x(30) + 8}" y="${y(last['확률']) + 14}" style="fill:#14703f">4월 10일 시작</text>`;
+    s += `<text class="lbl" x="${x(30) + 8}" y="${y(last['최적기간_확률']) - 4}" style="fill:#4b5e53">가장 좋은 날 시작</text>`;
+  }
+  svg.innerHTML = s;
+}
+let drawn = false;
+function drawIn(){
+  if (drawn || reduce) return; drawn = true;
+  document.querySelectorAll('#days-svg path').forEach(p => {
+    const L = p.getTotalLength(), dash = p.getAttribute('stroke-dasharray');
+    p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+    p.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 700, easing: 'cubic-bezier(0.2,0,0,1)' }).onfinish = () => { p.style.strokeDasharray = dash || ''; p.style.strokeDashoffset = ''; };
+  });
+}
+inp.addEventListener('input', readDays);
+window.addEventListener('resize', drawDays);
+readDays();
+
+/* 3. 수종 추천 */
+document.getElementById('rank-body').innerHTML = T.ranking.map((r, i) => {
+  const f = r['적합도'], [sm, sd] = r['평균_개화시작'].split('-').map(Number), [em, ed] = r['평균_낙화'].split('-').map(Number);
+  return `<tr class="${f ? '' : 'zero'}"><td class="no">${i + 1}</td><td class="sp">${r['종']}</td>
+    <td><div class="fit"><div class="bar"><i style="--f:${f}"></i></div><span>${r['관측연수']}해 중 ${r['겹친해수']}해</span></div></td>
+    <td class="num">${sm}/${sd} ~ ${em}/${ed} <span class="muted">(${Math.round(r['개화기간_중앙값'])}일)</span></td><td class="n">${r['안정성점수']}</td></tr>`;
+}).join('');
+function growFit(){
+  const t = document.querySelector('.rank'); if (!t.classList.contains('wait')) return;
+  t.classList.add('grow'); void t.offsetWidth; requestAnimationFrame(() => t.classList.remove('wait'));
+}
+</script>
+</body>
+</html>

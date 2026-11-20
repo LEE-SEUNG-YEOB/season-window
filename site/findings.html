@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>알아낸 것 | Season Window</title>
+<meta name="description" content="17년 식물계절 관측자료에서 찾은 개화의 해마다 흔들림: 연도 효과, 종별 차이, 고정 날짜 적중률, 먼저 핀 꽃의 단서.">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:title" content="알아낸 것 | Season Window">
+<meta property="og:description" content="17년 식물계절 관측자료에서 찾은 개화의 해마다 흔들림: 연도 효과, 종별 차이, 고정 날짜 적중률, 먼저 핀 꽃의 단서.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox='0 0 32 32' aria-hidden='true'><rect x='2' y='5' width='28' height='24' rx='6' fill='%2314703f'/><rect x='6' y='15' width='20' height='5' rx='2.5' fill='%23c9ead6'/><rect x='11' y='15' width='9' height='5' rx='2.5' fill='%23fff'/><path d='M9 2.5v5M23 2.5v5' stroke='%230b4a2b' stroke-width='2.5' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+.toc{list-style:none;margin:2rem 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:.75rem}
+.toc li{height:100%}
+.toc a{display:block;height:100%;padding:1rem 1.125rem;border:1px solid transparent;box-shadow:var(--shadow-border);border-radius:var(--r-md);text-decoration:none;color:var(--ink);font-weight:600;font-size:.9375rem;line-height:1.45;transition-property:box-shadow,background-color,scale;transition-duration:150ms;transition-timing-function:ease-out}
+.toc a:active{scale:.96}
+.toc a span{display:block;color:var(--g700);font-size:.8125rem;font-weight:700;margin-bottom:.25rem}
+@media (hover:hover) and (pointer:fine){.toc a:hover{box-shadow:var(--shadow-border-hover);background:var(--g100)}}
+.fd{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(2rem,4vw,3.5rem);align-items:start}
+@media (min-width:64rem){.fd{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}.fd.flip{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}.fd.flip > :first-child{order:2}.fd .txt{position:sticky;top:6rem}}
+.fd h2{margin-bottom:1.25rem}
+.fd .txt p{color:var(--ink-2)}
+.chart-box{background:#fff;border:1px solid transparent;box-shadow:var(--shadow-border);border-radius:var(--r-lg);padding:clamp(1.25rem,2.5vw,1.75rem)}
+.chart-box + .chart-box{margin-top:1.25rem}
+.chart-title{font-size:1rem;font-weight:700;margin:0 0 .25rem}
+.chart-sub{font-size:.875rem;color:var(--ink-2);margin:0 0 1.25rem}
+figcaption.note{margin-top:1rem}
+
+/* 연도 막대 */
+.yrc{--g:2.25rem}
+.yrc .plot{position:relative;height:15rem;margin-left:var(--g)}
+.yrc .gl{position:absolute;left:0;right:0;height:1px;background:var(--rule-soft)}
+.yrc .gl.zero{background:var(--ink-2)}
+.yrc .gl span{position:absolute;right:calc(100% + .5rem);top:-.6rem;font-size:.8125rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.yrc .cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr))}
+.yrc .col{position:relative}
+.yrc .col:hover .b{background:var(--g900)}
+.yrc .b{position:absolute;left:16%;right:16%;background:var(--g500);border-radius:4px;transition:background-color 120ms var(--ease)}
+.yrc .v{position:absolute;left:50%;transform:translateX(-50%);font-size:.8125rem;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.yrc .xs{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));margin-left:var(--g);margin-top:.5rem;font-size:.75rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.yrc .xs span{display:flex;justify-content:center;white-space:nowrap}
+.yrc .side{display:flex;justify-content:space-between;margin-left:var(--g);font-size:.8125rem;color:var(--ink-2);margin-bottom:.5rem}
+
+/* 검증 전환 */
+.seg{position:relative;display:inline-flex;padding:4px;border-radius:999px;background:var(--bg-soft);box-shadow:inset 0 0 0 1px var(--rule);margin-bottom:1.25rem;flex-wrap:wrap}
+.seg-ind{position:absolute;inset:4px;border-radius:999px;background:var(--g700);clip-path:inset(0 var(--r,50%) 0 var(--l,0px) round 999px);transition:clip-path 400ms cubic-bezier(0.2,0,0,1);pointer-events:none}
+.seg button{all:unset;position:relative;cursor:pointer;padding:.5rem 1rem;min-height:1.75rem;border-radius:999px;font-size:.875rem;font-weight:650;color:var(--ink-2);transition-property:color,scale;transition-duration:150ms;transition-timing-function:ease-out}
+.seg button[aria-pressed="true"]{color:#fff}
+.seg button:not(:disabled):active{scale:.96}
+@media (prefers-reduced-motion:reduce){.seg-ind{transition-duration:0s}#hit .pt{transition-duration:0s}}
+.seg button:focus-visible{outline:2px solid var(--g700);outline-offset:2px}
+@media (hover:hover) and (pointer:fine){.seg button[aria-pressed="false"]:hover{color:var(--ink)}}
+.avg{display:flex;align-items:baseline;gap:.75rem;margin:0 0 1rem}
+.avg b{font-size:2.5rem;font-weight:820;letter-spacing:-.03em;color:var(--g700);font-variant-numeric:tabular-nums;line-height:1}
+.avg span{font-size:.875rem;color:var(--ink-2)}
+#hit .pt{transition:translate 400ms cubic-bezier(0.2,0,0,1)}
+.dots .pt.worse{background:#fff;border:2px solid var(--ink-2)}
+.dots.pair .row{grid-template-columns:10rem 3.75rem minmax(0,1fr) 3.5rem}
+.sw-worse{width:.7rem;height:.7rem;border-radius:50%;border:2px solid var(--ink-2);display:inline-block}
+.dots .val.good{color:var(--g700)}
+@media (max-width:40rem){
+  .seg{display:grid;grid-template-columns:1fr 1fr;border-radius:14px;width:100%}
+  .seg-ind{border-radius:10px;clip-path:inset(0 var(--r,50%) 0 var(--l,0px) round 10px)}
+  .seg button{text-align:center;font-size:.8125rem;padding:.5rem .5rem;border-radius:10px;line-height:1.35}
+  .dots.pair .row{grid-template-columns:5.5rem 2.75rem minmax(0,1fr) 3rem;min-height:2.75rem}
+  .dots.pair .lab{font-size:.8125rem;line-height:1.3}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="5" width="28" height="24" rx="6" fill="#14703f"/><rect x="6" y="15" width="20" height="5" rx="2.5" fill="#c9ead6"/><rect x="11" y="15" width="9" height="5" rx="2.5" fill="#fff"/><path d="M9 2.5v5M23 2.5v5" stroke="#0b4a2b" stroke-width="2.5" stroke-linecap="round"/></svg>Season Window</a>
+    <nav class="site-nav" aria-label="주요 메뉴"><ul><li><a href="findings.html" aria-current="page">알아낸 것</a></li><li><a href="tool.html">만든 것</a></li><li><a href="data.html">데이터와 방법</a></li></ul></nav>
+  </div>
+</header>
+<main id="main">
+<section class="page-hero">
+  <div class="wrap">
+    <h1 class="page-title"><span class="w" style="--w:0">17년</span> <span class="w" style="--w:1">기록에서</span> <span class="w" style="--w:2">알아낸</span> <span class="w" style="--w:3">것</span></h1>
+    <p class="lead e" style="--i:4">같은 자료로 "봄은 빨라지고 단풍은 늦어진다"는 장기 추세를 다룬 연구는 이미 있습니다. 우리는 개화가 해마다 얼마나 흔들리는지에 집중했고, 축제를 정하는 데 바로 쓸 수 있는 답을 찾았습니다.</p>
+    <ul class="toc">
+      <li class="e" style="--i:5"><a href="#f1"><span>어느 해냐</span>흔들림의 절반은 전국이 함께 움직입니다</a></li>
+      <li class="e" style="--i:6"><a href="#f2"><span>어떤 종이냐</span>늦게 피는 종일수록 안정적입니다</a></li>
+      <li class="e" style="--i:7"><a href="#f3"><span>고정된 날짜</span>오래 피는 종이 더 잘 맞습니다</a></li>
+      <li class="e" style="--i:8"><a href="#f4"><span>먼저 핀 꽃</span>가까운 종의 개화를 알려 줍니다</a></li>
+    </ul>
+  </div>
+</section>
+
+<section id="f1">
+  <div class="wrap fd">
+    <div class="txt r">
+      <h2>흔들림은 "어디냐"보다 "어느 해냐"가 정합니다</h2>
+      <p>개화일은 해마다 6일 안팎 흔들리는데, 그 절반은 모든 수목원이 같은 해에 함께 빨라지거나 늦어지는 효과입니다. 2011년에는 전국이 평년보다 8일 늦었고, 2021년에는 8일 빨랐습니다.</p>
+      <p>그래서 수목원별 흔들림은 5.6~7.7일로 비슷하고, 지역 사이의 차이는 통계적으로 확인되지 않았습니다(p = 0.21). 2~3월이 1도 따뜻하면 개화는 약 3.6일 당겨집니다.</p>
+      <ul class="stats"><li><b>50%</b><span>전국이 함께 움직이는 연도 효과</span></li><li><b>약 3.6일</b><span>2~3월 1도당 당겨지는 날</span></li></ul>
+    </div>
+    <div>
+      <figure class="chart-box r" style="--i:1" aria-labelledby="yr-cap">
+        <p class="chart-title">해마다의 봄꽃 개화일, 평년과의 차이</p>
+        <p class="chart-sub">수목원·종마다 17년 평균을 0으로 두고 전체를 평균했습니다(개화50%이상).</p>
+        <div class="yrc" id="yr" role="img"></div>
+        <figcaption class="sr" id="yr-cap"></figcaption>
+      </figure>
+      <figure class="chart-box r" style="--i:2" aria-labelledby="site-cap">
+        <p class="chart-title">수목원별 흔들림</p>
+        <p class="chart-sub">해마다 날짜의 표준편차(일). 선은 95% 구간이고, 서로 겹칩니다.</p>
+        <div class="dots" id="sites" aria-hidden="true"></div>
+        <figcaption class="sr" id="site-cap">수목원 전시원 10곳의 개화 흔들림은 5.6일에서 7.7일 사이이며 95% 구간이 서로 겹칩니다.</figcaption>
+        <details><summary>표로 보기</summary><div class="tbl"><table id="sites-table"></table></div></details>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="f2" class="soft">
+  <div class="wrap fd flip">
+    <div class="txt r">
+      <h2>늦게 피는 종일수록 개화 시기가 안정적입니다</h2>
+      <p>3월에 피는 생강나무와 산수유는 해마다 7일 안팎 흔들리지만, 5월에 피는 아까시나무와 마가목은 5일 안팎입니다. 평균 개화일과 흔들림의 상관계수는 −0.85입니다.</p>
+      <p>종 사이의 차이는 통계적으로 뚜렷합니다(p = 0.0003). 단풍은 은행나무만 11.6일로 크게 흔들리고, 나머지 4종은 5~7일입니다.</p>
+      <ul class="stats"><li><b>4.9~7.7일</b><span>봄꽃 11종의 흔들림</span></li><li><b>−0.85</b><span>개화가 늦을수록 덜 흔들림</span></li></ul>
+    </div>
+    <figure class="chart-box r" style="--i:1" aria-labelledby="sp-cap">
+      <p class="chart-title">봄꽃 11종의 흔들림</p>
+      <p class="chart-sub">위에서 아래로 평균 개화일 순서입니다. 점은 표준편차(일), 선은 95% 구간입니다.</p>
+      <div class="dots with-date" id="species" aria-hidden="true"></div>
+      <figcaption class="sr" id="sp-cap">봄꽃 11종 가운데 일찍 피는 생강나무가 7.7일로 가장 크게, 늦게 피는 아까시나무가 4.9일로 가장 적게 흔들립니다.</figcaption>
+      <details><summary>표로 보기</summary><div class="tbl"><table id="species-table"></table></div></details>
+    </figure>
+  </div>
+</section>
+
+<section id="f3">
+  <div class="wrap fd">
+    <div class="txt r">
+      <h2>날짜가 고정된 축제에는 오래 피는 종이 더 잘 맞습니다</h2>
+      <p>흔들림만 보면 왕벚나무가 산수유보다 안정적입니다. 하지만 산수유는 24일, 왕벚나무는 14일 동안 꽃이 피어 있어서, 축제 날짜를 미리 하루로 정해 두면 그날 꽃이 있을 가능성은 산수유가 더 높습니다.</p>
+      <p>지나간 17년을 다 보고 고른 날은 평균 91% 맞지만, 한 해씩 떼어 두고 미리 정하게 하면 80%로 내려갑니다. 앞으로의 축제에 기대할 수 있는 값은 뒤쪽입니다.</p>
+      <ul class="stats"><li><b>88%</b><span>개나리, 미리 정했을 때</span></li><li><b>79%</b><span>왕벚나무, 미리 정했을 때</span></li></ul>
+    </div>
+    <figure class="chart-box r" style="--i:1" aria-labelledby="hit-cap">
+      <p class="chart-title">축제 날짜를 하루로 고정했을 때 꽃이 피어 있던 해의 비율</p>
+      <p class="chart-sub">가운데 칸은 꽃이 피어 있는 기간의 중앙값입니다.</p>
+      <div class="seg" role="group" aria-label="날짜를 고른 방법">
+        <i class="seg-ind" aria-hidden="true"></i>
+        <button type="button" aria-pressed="true" data-mode="cv">미리 정했을 때(검증)</button>
+        <button type="button" aria-pressed="false" data-mode="in">17년을 다 보고 고른 날</button>
+      </div>
+      <p class="avg"><b id="hit-avg">80%</b><span id="hit-avg-l">11종 평균, 한 해씩 떼어 두고 검증</span></p>
+      <div class="dots with-date" id="hit" aria-hidden="true"></div>
+      <figcaption class="note" id="hit-cap">"검증"은 한 해를 떼어 두고 나머지 해로 날짜를 고른 뒤, 떼어 둔 해에 꽃이 있었는지 센 값입니다.</figcaption>
+      <details><summary>표로 보기</summary><div class="tbl"><table id="hit-table"></table></div></details>
+    </figure>
+  </div>
+</section>
+
+<section id="f4" class="soft">
+  <div class="wrap fd flip">
+    <div class="txt r">
+      <h2>먼저 핀 꽃은 가까운 시기에 피는 꽃의 단서가 됩니다</h2>
+      <p>피는 순서는 17년 동안 거의 바뀌지 않았지만, 종 사이의 간격은 해마다 4~5일씩 흔들립니다. 그해 먼저 핀 종의 날짜로 다음 종을 맞히면, 1~2주 간격으로 피는 종끼리는 평균 날짜로 맞힐 때보다 오차가 줄었습니다.</p>
+      <p>간격이 2주를 넘으면 오히려 나빠졌습니다. 그래서 축제 직전에 날짜를 다듬을 때는 가까운 시기에 피는 종만 단서로 씁니다.</p>
+    </div>
+    <figure class="chart-box r" style="--i:1" aria-labelledby="gap-cap">
+      <p class="chart-title">먼저 핀 종으로 다음 종을 맞힐 때의 오차</p>
+      <p class="chart-sub">한 해씩 떼어 두고 맞힌 평균 절대 오차(일). 왼쪽일수록 정확합니다.</p>
+      <div class="legend" aria-hidden="true"><span><i class="sw-ring"></i>평균 날짜로 맞힐 때</span><span><i class="sw-dot"></i>먼저 핀 종으로, 나아짐</span><span><i class="sw-worse"></i>먼저 핀 종으로, 나빠짐</span></div>
+      <div class="dots pair with-date" id="gap" aria-hidden="true"></div>
+      <figcaption class="note" id="gap-cap">가운데 칸은 두 종의 평균 개화 간격입니다. 오른쪽 숫자는 평균 날짜로 맞힐 때와의 차이입니다.</figcaption>
+      <details><summary>표로 보기</summary><div class="tbl"><table id="gap-table"></table></div></details>
+    </figure>
+  </div>
+</section>
+
+<section id="trend">
+  <div class="wrap fd">
+    <div class="txt r">
+      <h2>장기 추세는 기존 연구와 같은 방향입니다</h2>
+      <p>2010~2025년에 봄꽃 개화는 10년에 7.5일 빨라졌고, 단풍은 9.5일 늦어졌습니다. 다만 봄의 추세는 2010~2013년의 늦은 봄에 크게 좌우되어, 2014년 이후만 보면 10년에 2.5일로 0과 구분되지 않습니다.</p>
+      <p>추세보다 해마다의 흔들림이 더 크기 때문에, 축제 기간은 "평균이 언제냐"보다 "얼마나 흔들리느냐"에 맞춰 정해야 합니다. 이 생각을 <a class="link" href="tool.html">세 가지 기능</a>으로 만들었습니다.</p>
+    </div>
+    <ul class="stats r" style="align-self:center;--i:1">
+      <li><b>−7.5일</b><span>봄꽃 개화, 10년당 (±3.5일)</span></li>
+      <li><b>+9.5일</b><span>단풍, 10년당 (±2.7일)</span></li>
+      <li><b>−2.5일</b><span>봄꽃, 2014년 이후만 (±4.7일)</span></li>
+    </ul>
+  </div>
+</section>
+</main>
+<footer class="site-foot">
+  <div class="wrap cols">
+    <div>
+      <h2>Season Window</h2>
+      <p>국립수목원 식물계절 관측자료로 봄꽃의 해마다 달라지는 개화를 분석하고, 축제 기간을 정하는 도구를 만든 머신러닝 팀 프로젝트(3인)입니다. 산림청 산림공공데이터 활용사례 공모 출품작.</p>
+    </div>
+    <div>
+      <h2>둘러보기</h2>
+      <ul><li><a href="index.html">처음</a></li><li><a href="findings.html">알아낸 것</a></li><li><a href="tool.html">만든 것</a></li><li><a href="data.html">데이터와 방법</a></li><li><a href="https://github.com/LEE-SEUNG-YEOB/season-window">분석 코드(GitHub)</a></li></ul>
+    </div>
+    <div>
+      <h2>자료 출처</h2>
+      <p>국립수목원 식물계절관측 프로젝트(<a href="https://knpn.nature.go.kr">knpn.nature.go.kr</a>) 관측자료 2009~2025년, 기상청 기상자료개방포털(<a href="https://data.kma.go.kr">data.kma.go.kr</a>) 종관기상관측 일자료. 관측자료의 저작권은 관측한 시민과학자와 국립수목원에 있으며, 이 사이트에는 집계한 결과만 싣습니다.</p>
+    </div>
+  </div>
+</footer>
+<script src="assets/site.js"></script>
+<script>
+const D = {"calendar": [{"sp": "생강나무", "start": 75.5, "end": 100.7, "early": 65.0, "late": 115.0, "n": 94.0, "dur": 28.0}, {"sp": "산수유", "start": 75.9, "end": 101.0, "early": 60.1, "late": 114.0, "n": 132.0, "dur": 24.0}, {"sp": "미선나무", "start": 81.0, "end": 97.5, "early": 67.8, "late": 109.0, "n": 109.0, "dur": 15.0}, {"sp": "개나리", "start": 85.0, "end": 109.1, "early": 73.0, "late": 120.0, "n": 135.0, "dur": 24.0}, {"sp": "진달래", "start": 85.8, "end": 106.3, "early": 73.0, "late": 120.0, "n": 121.0, "dur": 21.0}, {"sp": "백목련", "start": 88.3, "end": 102.2, "early": 76.4, "late": 115.0, "n": 125.0, "dur": 14.0}, {"sp": "왕벚나무", "start": 92.6, "end": 106.9, "early": 83.0, "late": 116.0, "n": 119.0, "dur": 14.0}, {"sp": "산철쭉", "start": 107.1, "end": 126.5, "early": 95.4, "late": 137.0, "n": 115.0, "dur": 19.0}, {"sp": "철쭉", "start": 110.3, "end": 125.9, "early": 100.2, "late": 132.8, "n": 83.0, "dur": 15.0}, {"sp": "마가목", "start": 118.7, "end": 131.9, "early": 109.0, "late": 139.4, "n": 57.0, "dur": 13.0}, {"sp": "아까시나무", "start": 131.2, "end": 147.0, "early": 123.0, "late": 154.5, "n": 86.0, "dur": 14.0}], "spSpring": [{"name": "개나리", "mean": 91.7, "sd": 6.7, "lo": 5.96, "hi": 7.45}, {"name": "마가목", "mean": 123.4, "sd": 4.93, "lo": 4.05, "hi": 5.72}, {"name": "미선나무", "mean": 86.3, "sd": 6.31, "lo": 5.52, "hi": 7.04}, {"name": "백목련", "mean": 93.4, "sd": 6.76, "lo": 5.94, "hi": 7.52}, {"name": "산수유", "mean": 83.9, "sd": 6.83, "lo": 5.98, "hi": 7.63}, {"name": "산철쭉", "mean": 113.7, "sd": 5.15, "lo": 4.51, "hi": 5.73}, {"name": "생강나무", "mean": 80.9, "sd": 7.67, "lo": 6.03, "hi": 9.01}, {"name": "아까시나무", "mean": 137.2, "sd": 4.86, "lo": 4.18, "hi": 5.44}, {"name": "왕벚나무", "mean": 98.1, "sd": 5.83, "lo": 5.16, "hi": 6.5}, {"name": "진달래", "mean": 93.6, "sd": 7.59, "lo": 6.82, "hi": 8.32}, {"name": "철쭉", "mean": 117.5, "sd": 6.02, "lo": 5.23, "hi": 6.73}], "spAutumn": [{"name": "단풍나무", "mean": 301.4, "sd": 6.48, "lo": 4.99, "hi": 7.81}, {"name": "당단풍나무", "mean": 300.3, "sd": 6.84, "lo": 5.64, "hi": 8.09}, {"name": "신갈나무", "mean": 311.4, "sd": 5.67, "lo": 2.54, "hi": 7.84}, {"name": "은행나무", "mean": 296.7, "sd": 11.63, "lo": 9.01, "hi": 13.98}, {"name": "졸참나무", "mean": 316.3, "sd": 5.34, "lo": 3.94, "hi": 6.5}], "sites": [{"name": "강원도립화목원", "sd": 6.2, "lo": 5.61, "hi": 6.75}, {"name": "경남수목원", "sd": 5.92, "lo": 5.28, "hi": 6.53}, {"name": "국립수목원", "sd": 7.72, "lo": 6.49, "hi": 8.77}, {"name": "금강수목원", "sd": 5.91, "lo": 5.04, "hi": 6.73}, {"name": "대구수목원", "sd": 6.62, "lo": 5.79, "hi": 7.37}, {"name": "대아수목원", "sd": 6.4, "lo": 5.64, "hi": 7.11}, {"name": "물향기수목원", "sd": 6.73, "lo": 6.05, "hi": 7.36}, {"name": "미동산수목원", "sd": 5.59, "lo": 4.88, "hi": 6.3}, {"name": "완도수목원", "sd": 5.95, "lo": 5.18, "hi": 6.67}, {"name": "한라수목원", "sd": 6.67, "lo": 5.61, "hi": 7.67}], "yearSpring": {"2009": 0.82, "2010": 7.44, "2011": 8.37, "2012": 7.9, "2013": 3.56, "2014": -3.19, "2015": 1.02, "2016": -0.68, "2017": 0.7, "2018": -1.26, "2019": 0.52, "2020": -3.52, "2021": -8.32, "2022": -1.2, "2023": -5.95, "2024": -3.51, "2025": 0.4}, "yearAutumn": {"2009": -4.67, "2010": -5.49, "2011": -6.47, "2012": -6.11, "2013": -1.8, "2014": -5.76, "2015": -3.96, "2016": -1.22, "2017": -1.34, "2018": -2.58, "2019": 4.54, "2020": -1.98, "2021": 2.72, "2022": 1.24, "2023": 2.94, "2024": 9.98, "2025": 9.25}, "hit": [{"name": "마가목", "insample": 0.895, "cv": 0.7, "dur": 13.625, "sd": 5.163}, {"name": "백목련", "insample": 0.827, "cv": 0.73, "dur": 13.85, "sd": 6.375}, {"name": "진달래", "insample": 0.873, "cv": 0.748, "dur": 20.333, "sd": 7.361}, {"name": "철쭉", "insample": 0.879, "cv": 0.754, "dur": 14.667, "sd": 5.598}, {"name": "왕벚나무", "insample": 0.899, "cv": 0.79, "dur": 14.611, "sd": 5.704}, {"name": "생강나무", "insample": 0.927, "cv": 0.795, "dur": 25.429, "sd": 6.853}, {"name": "미선나무", "insample": 0.91, "cv": 0.795, "dur": 15.406, "sd": 6.852}, {"name": "아까시나무", "insample": 0.924, "cv": 0.845, "dur": 15.8, "sd": 4.88}, {"name": "산수유", "insample": 0.954, "cv": 0.853, "dur": 25.15, "sd": 7.162}, {"name": "산철쭉", "insample": 0.942, "cv": 0.87, "dur": 18.611, "sd": 6.964}, {"name": "개나리", "insample": 0.972, "cv": 0.879, "dur": 23.5, "sd": 6.612}]};
+const GAPS = [
+  ["백목련","왕벚나무",4.1,4.75,3.19],["개나리","왕벚나무",6.6,4.82,3.62],["산수유","왕벚나무",14.2,4.66,4.26],
+  ["왕벚나무","철쭉",15.5,4.58,2.98],["왕벚나무","산철쭉",16.8,4.13,3.38],["생강나무","왕벚나무",14.9,4.42,5.88],
+  ["왕벚나무","아까시나무",39.1,3.94,4.61],["산수유","아까시나무",52.5,4.17,5.55]];
+const { el, md, mdShort, dotChart, reduce } = SW, f1 = v => v.toFixed(1);
+
+/* 연도 막대 */
+(() => {
+  const box = document.getElementById('yr');
+  const yrs = Object.keys(D.yearSpring).map(Number).filter(y => y >= 2010), M = 10;
+  const top = v => ((M - v) / (2 * M) * 100).toFixed(2) + '%';
+  box.style.setProperty('--n', yrs.length);
+  box.append(el('div', 'side', '<span>늦음 ↑</span><span>단위: 일</span>'));
+  const plot = el('div', 'plot');
+  [10,5,0,-5,-10].forEach(v => { const g = el('i', 'gl' + (v === 0 ? ' zero' : '')); g.style.top = top(v); g.append(el('span', null, (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v))); plot.append(g); });
+  const cols = el('div', 'cols');
+  yrs.forEach(yr => {
+    const v = D.yearSpring[yr], c = el('div', 'col'), b = el('i', 'b m gy'); b.style.transformOrigin = v >= 0 ? '50% 100%' : '50% 0%';
+    b.style.top = top(Math.max(v, 0)); b.style.bottom = (100 - parseFloat(top(Math.min(v, 0)))).toFixed(2) + '%';
+    c.title = `${yr}년: 평년보다 ${Math.abs(v).toFixed(1)}일 ${v > 0 ? '늦음' : '빠름'}`;
+    c.append(b);
+    if (yr === 2011 || yr === 2021) {
+      const s = el('span', 'v m', (v > 0 ? '+' : '−') + Math.abs(v).toFixed(1)); s.style.setProperty('--i', 3);
+      if (v > 0) s.style.bottom = `calc(${(100 - parseFloat(top(v))).toFixed(2)}% + .25rem)`; else s.style.top = `calc(${top(v)} + .25rem)`;
+      c.append(s);
+    }
+    cols.append(c);
+  });
+  plot.append(cols); box.append(plot);
+  const xs = el('div', 'xs'); yrs.forEach(y => xs.append(el('span', null, y % 5 === 0 ? String(y) : ''))); box.append(xs);
+  box.append(el('div', 'side', '<span>빠름 ↓</span><span></span>'));
+  box.querySelector('.side:last-child').style.marginTop = '.25rem';
+  document.getElementById('yr-cap').textContent = '2010~2025년 봄꽃 개화일의 평년 대비 차이. ' + yrs.map(y => `${y}년 ${D.yearSpring[y] > 0 ? '+' : ''}${D.yearSpring[y].toFixed(1)}일`).join(', ');
+})();
+
+/* 수목원 */
+const sites = [...D.sites].sort((a,b) => a.sd - b.sd);
+const short = n => n.replace('강원도립화목원','강원화목원').replace('수목원','');
+dotChart('sites', sites.map(r => ({name:short(r.name), v:r.sd, lo:r.lo, hi:r.hi})),
+  {lo:0, hi:10, grid:[0,2,4,6,8,10], gray:true, fmt:f1, tick:g => g + (g===10?'일':''), tip:r => `${r.name}: ${f1(r.v)}일 (95% ${f1(r.lo)}~${f1(r.hi)})`});
+document.getElementById('sites-table').innerHTML = '<thead><tr><th>수목원</th><th class="n">흔들림(일)</th><th class="n">95% 구간</th></tr></thead><tbody>' +
+  sites.map(r => `<tr><td>${r.name}</td><td class="n">${f1(r.sd)}</td><td class="n">${f1(r.lo)}~${f1(r.hi)}</td></tr>`).join('') + '</tbody>';
+
+/* 종 */
+const sp = [...D.spSpring].sort((a,b) => a.mean - b.mean);
+dotChart('species', sp.map(r => ({name:r.name, mean:r.mean, v:r.sd, lo:r.lo, hi:r.hi})),
+  {lo:3, hi:10, grid:[4,6,8,10], date:r => mdShort(r.mean), fmt:f1, tick:g => g + (g===10?'일':''), tip:r => `${r.name}: 평균 ${md(r.mean)}, 흔들림 ${f1(r.v)}일 (95% ${f1(r.lo)}~${f1(r.hi)})`});
+document.getElementById('species-table').innerHTML = '<thead><tr><th>종</th><th>평균 개화일</th><th class="n">흔들림(일)</th><th class="n">95% 구간</th></tr></thead><tbody>' +
+  sp.map(r => `<tr><td>${r.name}</td><td>${md(r.mean)}</td><td class="n">${f1(r.sd)}</td><td class="n">${f1(r.lo)}~${f1(r.hi)}</td></tr>`).join('') + '</tbody>';
+
+/* 적중률: 두 방법 전환 */
+(() => {
+  const DUR = Object.fromEntries(D.calendar.map(r => [r.sp, r.dur]));
+  const hit = [...D.hit].map(r => ({...r, dur: DUR[r.name]})).sort((a,b) => b.cv - a.cv);
+  const rows = dotChart('hit', hit.map(r => ({name:r.name, dur:r.dur, v:r.cv*100, cv:r.cv*100, ins:r.insample*100})),
+    {lo:60, hi:100, grid:[60,70,80,90,100], minor:[70,90], date:r => `${Math.round(r.dur)}일`, fmt:v => Math.round(v) + '%', tick:g => g + '%', tip:r => `${r.name}: 미리 정했을 때 ${Math.round(r.cv)}%, 다 보고 고른 날 ${Math.round(r.ins)}%, 꽃이 피어 있는 기간 ${Math.round(r.dur)}일`});
+  const mean = k => rows.reduce((s, r) => s + r[k], 0) / rows.length;
+  const avg = document.getElementById('hit-avg'), avgL = document.getElementById('hit-avg-l');
+  let shown = mean('cv'), raf = 0;
+  function count(to){
+    cancelAnimationFrame(raf);
+    if (reduce) { shown = to; avg.textContent = Math.round(to) + '%'; return; }
+    const from = shown, t0 = performance.now();
+    const step = t => { const k = Math.min(1, (t - t0) / 600), e = 1 - Math.pow(1 - k, 3); shown = from + (to - from) * e; avg.textContent = Math.round(shown) + '%'; if (k < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+  }
+  const seg = document.querySelector('.seg'), ind = seg.querySelector('.seg-ind'), segBtns = [...seg.querySelectorAll('button')];
+  let mode = 'cv';
+  function placeInd(){
+    const b = segBtns.find(x => x.getAttribute('aria-pressed') === 'true'), w = ind.offsetWidth;
+    const l = b.offsetLeft - 4, r = w - (b.offsetLeft - 4 + b.offsetWidth);
+    ind.style.setProperty('--l', l + 'px'); ind.style.setProperty('--r', Math.max(0, r) + 'px');
+  }
+  function placeDots(){
+    rows.forEach(r => { const w = r._t.offsetWidth, d = (r[mode] - r._base) / 40 * w; r._pt.style.translate = `${d.toFixed(1)}px 0`; });
+  }
+  placeInd(); window.addEventListener('resize', () => { const t = ind.style.transition; ind.style.transition = 'none'; placeInd(); placeDots(); requestAnimationFrame(() => ind.style.transition = t); });
+  segBtns.forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.mode === 'cv' ? 'cv' : 'ins';
+    if (k === mode) return;
+    mode = k;
+    segBtns.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    placeInd(); placeDots();
+    rows.forEach(r => SW.swap(r._val, Math.round(r[k]) + '%'));
+    avgL.textContent = k === 'cv' ? '11종 평균, 한 해씩 떼어 두고 검증' : '11종 평균, 지난 17년을 다 보고 고른 날';
+    count(mean(k));
+  }));
+  document.getElementById('hit-table').innerHTML = '<thead><tr><th>종</th><th class="n">꽃이 피어 있는 기간</th><th class="n">미리 정했을 때(검증)</th><th class="n">다 보고 고른 날</th></tr></thead><tbody>' +
+    hit.map(r => `<tr><td>${r.name}</td><td class="n">${Math.round(r.dur)}일</td><td class="n">${Math.round(r.cv*100)}%</td><td class="n">${Math.round(r.insample*100)}%</td></tr>`).join('') + '</tbody>';
+})();
+
+/* 먼저 핀 종 */
+(() => {
+  const rows = dotChart('gap', GAPS.map(([a,b,g,m,p]) => ({name:`${a} → ${b}`, gap:g, v:p, ring:m})),
+    {lo:2, hi:6, grid:[2,3,4,5,6], minor:[3,5], date:r => `${Math.round(r.gap)}일`, fmt:v => v.toFixed(2), tick:g => g + (g===6?'일':''), tip:r => `${r.name}: 평균으로 ${r.ring.toFixed(2)}일, 먼저 핀 종으로 ${r.v.toFixed(2)}일`});
+  rows.forEach(r => {
+    const d = r.v - r.ring; r._val.textContent = (d < 0 ? '−' : '+') + Math.abs(d).toFixed(1);
+    if (d < 0) r._val.classList.add('good'); else r._pt.classList.add('worse');
+  });
+  document.getElementById('gap-table').innerHTML = '<thead><tr><th>먼저 핀 종 → 맞힐 종</th><th class="n">평균 간격</th><th class="n">평균으로</th><th class="n">먼저 핀 종으로</th></tr></thead><tbody>' +
+    GAPS.map(([a,b,g,m,p]) => `<tr><td>${a} → ${b}</td><td class="n">${f1(g)}일</td><td class="n">${m.toFixed(2)}일</td><td class="n">${p.toFixed(2)}일</td></tr>`).join('') + '</tbody>';
+})();
+</script>
+</body>
+</html>

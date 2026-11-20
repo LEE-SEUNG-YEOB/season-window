@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Season Window: 축제는 그대로, 꽃은 해마다 움직입니다</title>
+<meta name="description" content="국립수목원 17년 식물계절 관측자료로 봄꽃 개화의 해마다 흔들림을 분석하고, 축제 기간 설계와 수종 추천 도구를 만든 산림공공데이터 활용 사례입니다.">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:title" content="Season Window: 축제는 그대로, 꽃은 해마다 움직입니다">
+<meta property="og:description" content="국립수목원 17년 식물계절 관측자료로 봄꽃 개화의 해마다 흔들림을 분석하고, 축제 기간 설계와 수종 추천 도구를 만든 산림공공데이터 활용 사례입니다.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox='0 0 32 32' aria-hidden='true'><rect x='2' y='5' width='28' height='24' rx='6' fill='%2314703f'/><rect x='6' y='15' width='20' height='5' rx='2.5' fill='%23c9ead6'/><rect x='11' y='15' width='9' height='5' rx='2.5' fill='%23fff'/><path d='M9 2.5v5M23 2.5v5' stroke='%230b4a2b' stroke-width='2.5' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+.hero{padding-block:clamp(2.5rem,6vw,4.5rem) clamp(3rem,6vw,5rem);min-height:calc(100svh - 4rem);display:flex;align-items:center}
+.hero .wrap{width:100%}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(2rem,4vw,3rem);align-items:start;margin-top:clamp(2rem,4vw,3rem)}
+@media (min-width:62rem){.hero-grid{grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr)}}
+.hero .lead{margin-top:0}
+.hero-fact{margin-top:1.75rem;display:flex;gap:.5rem 1.75rem;flex-wrap:wrap;font-size:.9375rem;color:var(--ink-2)}
+.hero-fact b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* 축제 창 장면 */
+.stage{background:#fff;border:1px solid transparent;border-radius:var(--r-lg);padding:clamp(1.25rem,2.5vw,2rem);box-shadow:var(--shadow-border),var(--shadow-lift)}
+.st-year,#st-days{display:inline-block}
+.stage-top{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem}
+.st-year{font-size:clamp(2.75rem,2rem + 3vw,4.5rem);font-weight:820;letter-spacing:-.04em;line-height:.9;color:var(--g900);font-variant-numeric:tabular-nums}
+.st-verdict{text-align:end}
+.st-verdict b{font-size:clamp(1.75rem,1.3rem + 1.6vw,2.5rem);font-weight:800;letter-spacing:-.03em;line-height:1.05;color:var(--g700);font-variant-numeric:tabular-nums}
+.st-verdict b.none{color:var(--ink-2)}
+.st-verdict span{display:block;font-size:.875rem;color:var(--ink-2);white-space:nowrap}
+.st-sub{margin:.5rem 0 0;font-size:.875rem;color:var(--ink-2)}
+.tl{position:relative;margin-top:1.75rem;padding-top:2.25rem}
+.tl-track{position:relative;height:3.25rem;border-radius:12px;background:var(--bg-soft)}
+.tl-grid{position:absolute;top:0;bottom:0;width:1px;background:var(--rule)}
+.tl-fest{position:absolute;top:-.375rem;bottom:-.375rem;border:2px solid var(--g900);border-radius:10px;z-index:2;pointer-events:none}
+.tl-fest-label{position:absolute;bottom:calc(100% + .5rem);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.8125rem;font-weight:700;color:var(--g900);background:#fff;padding:0 .25rem}
+.tl-bloom{position:absolute;left:0;right:0;top:.625rem;height:2rem;background:var(--g500);clip-path:inset(0 var(--r,100%) 0 var(--l,0%) round 8px);transition:clip-path 600ms cubic-bezier(0.2,0,0,1);z-index:1}
+@media (prefers-reduced-motion:reduce){.tl-bloom{transition-duration:0s}}
+.tl-ticks{position:relative;height:1.5rem;margin-top:.5rem;font-size:.8125rem;color:var(--ink-2)}
+.tl-ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.tl-legend{display:flex;gap:.5rem 1.25rem;flex-wrap:wrap;margin-top:.75rem;font-size:.8125rem;color:var(--ink-2)}
+.tl-legend span{display:inline-flex;align-items:center;gap:.4rem}
+.tl-legend .k1{width:1.25rem;height:.6rem;border-radius:3px;background:var(--g500)}
+.tl-legend .k2{width:1.25rem;height:.75rem;border-radius:4px;border:2px solid var(--g900)}
+.strip{margin-top:1.5rem;border-top:1px solid var(--rule-soft);padding-top:1rem}
+.strip-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;font-size:.8125rem;color:var(--ink-2);margin-bottom:.5rem}
+.strip-bars{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:4px;align-items:end;height:3.25rem}
+.strip-bars button{all:unset;cursor:pointer;position:relative;height:100%;display:flex;align-items:flex-end;justify-content:center;border-radius:4px}
+.strip-bars button i{display:block;width:100%;border-radius:3px 3px 1px 1px;background:var(--g200);height:var(--h);transform-origin:bottom;transform:scaleY(0);transition:transform 400ms var(--ease-enter),background-color 150ms var(--ease)}
+.strip-bars button.seen i{transform:scaleY(1)}
+.strip-bars button.zero i{background:#e4e9e6;height:3px}
+.strip-bars button.cur i{background:var(--g700)}
+.strip-bars button:focus-visible{outline:2px solid var(--g700);outline-offset:2px}
+.strip-years{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:4px;margin-top:.375rem;font-size:.75rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.strip-years span{display:flex;justify-content:center;white-space:nowrap}
+.ctl{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;font-size:.8125rem;font-weight:650;color:var(--g700);padding:.5rem .25rem;min-height:2.75rem}
+.ctl svg{width:1rem;height:1rem}
+.ctl-stack{display:grid;justify-items:end}
+.ctl-stack > span{grid-area:1/1;display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap;opacity:0;transition-property:opacity,scale,filter;transition-duration:300ms;transition-timing-function:cubic-bezier(0.2,0,0,1)}
+.ctl[data-state="pause"] .s-pause,.ctl[data-state="play"] .s-play,.ctl[data-state="again"] .s-again{opacity:1}
+@media (prefers-reduced-motion:no-preference){
+  .ctl-stack > span{scale:.25;filter:blur(4px)}
+  .ctl[data-state="pause"] .s-pause,.ctl[data-state="play"] .s-play,.ctl[data-state="again"] .s-again{scale:1;filter:blur(0)}
+}
+.ctl:not(:disabled):active{scale:.96}
+.ctl{transition-property:scale;transition-duration:150ms;transition-timing-function:ease-out}
+.ctl:focus-visible{outline:2px solid var(--g700);outline-offset:2px;border-radius:6px}
+
+/* 세 가지 발견 */
+.find-cards .card .big small{font-size:1rem;font-weight:650;color:var(--ink-2);letter-spacing:0;margin-left:.25rem}
+
+/* 도구 미리 보기 */
+.split{display:grid;grid-template-columns:minmax(0,1fr);gap:2.5rem;align-items:center}
+@media (min-width:62rem){.split{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)}}
+.mini-app{display:block;border:1px solid transparent;border-radius:var(--r-lg);overflow:hidden;background:#fff;color:inherit;text-decoration:none;box-shadow:var(--shadow-border),0 24px 48px -28px rgb(11 74 43 / .3);transition-property:box-shadow;transition-duration:150ms;transition-timing-function:ease-out}
+@media (hover:hover) and (pointer:fine){.mini-app:hover{box-shadow:var(--shadow-border-hover),0 30px 56px -28px rgb(11 74 43 / .4)}}
+.mini-bar{display:flex;align-items:center;gap:.75rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--rule-soft);font-size:.8125rem;color:var(--ink-2)}
+.mini-bar b{color:var(--ink);font-weight:700}
+.mini-bar .chip{margin-left:auto;background:var(--g100);color:var(--g900);border-radius:999px;padding:.2rem .7rem;font-weight:650}
+.mini-body{padding:1.5rem 1.25rem 1.75rem}
+.mini-tabs{display:flex;gap:.375rem;margin-bottom:1.25rem}
+.mini-tabs span{font-size:.8125rem;padding:.375rem .75rem;border-radius:999px;color:var(--ink-2);background:var(--bg-soft)}
+.mini-tabs span.on{background:var(--g700);color:#fff;font-weight:650}
+.mini-date{font-size:2.5rem;font-weight:820;letter-spacing:-.03em;color:var(--g900);line-height:1}
+.mini-range{position:relative;height:2.25rem;margin-top:1.25rem;border-radius:10px;background:var(--bg-soft)}
+.mini-range .rg{position:absolute;top:.5rem;bottom:.5rem;border-radius:6px;background:var(--g200)}
+.mini-range .pt{position:absolute;top:.25rem;bottom:.25rem;width:3px;border-radius:2px;background:var(--g700)}
+.mini-range .mean{position:absolute;top:.25rem;bottom:.25rem;width:0;border-left:2px dashed var(--gray-mark)}
+
+/* 띠 */
+.band .wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:2rem;align-items:end}
+@media (min-width:62rem){.band .wrap{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr)}}
+.band .stats b{color:#fff}
+.band .stats span{color:#b9dcc6}
+.band .btn--line{background:transparent;color:#fff;border-color:#4f8d6a}
+@media (hover:hover) and (pointer:fine){.band .btn--line:hover{background:#13603a;border-color:#8fd0aa}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="index.html" aria-current="page"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="5" width="28" height="24" rx="6" fill="#14703f"/><rect x="6" y="15" width="20" height="5" rx="2.5" fill="#c9ead6"/><rect x="11" y="15" width="9" height="5" rx="2.5" fill="#fff"/><path d="M9 2.5v5M23 2.5v5" stroke="#0b4a2b" stroke-width="2.5" stroke-linecap="round"/></svg>Season Window</a>
+    <nav class="site-nav" aria-label="주요 메뉴"><ul><li><a href="findings.html">알아낸 것</a></li><li><a href="tool.html">만든 것</a></li><li><a href="data.html">데이터와 방법</a></li></ul></nav>
+  </div>
+</header>
+<main id="main">
+<section class="hero">
+  <div class="wrap">
+    <h1 class="display"><span class="line"><span class="w" style="--w:0">축제는</span> <span class="w" style="--w:1">그대로인데</span></span><span class="line"><span class="w" style="--w:2">꽃은</span> <span class="w" style="--w:3">해마다</span> <span class="w" style="--w:4">움직입니다</span></span></h1>
+    <div class="hero-grid">
+    <div>
+      <p class="lead e" style="--i:5">국립수목원이 17년 동안 기록한 봄꽃 관측자료로, 개화가 해마다 얼마나 흔들리는지 재고 축제 기간과 수종을 정하는 도구를 만들었습니다.</p>
+      <div class="btns e" style="--i:6">
+        <a class="btn btn--solid" href="findings.html">알아낸 것 보기</a>
+        <a class="btn btn--line" href="tool.html">도구 화면 보기</a>
+      </div>
+      <p class="hero-fact e" style="--i:7"><span>관측 <b>61,309건</b></span><span>수목원 <b>10곳</b></span><span>봄꽃 <b>11종</b></span><span><b>2009~2025년</b></span></p>
+    </div>
+    <figure class="stage e" style="--i:4" aria-labelledby="st-cap">
+      <div class="stage-top">
+        <div class="st-year" id="st-year" aria-hidden="true">2010</div>
+        <div class="st-verdict" aria-hidden="true"><b id="st-days">0일</b><span>축제 9일 중 꽃이 핀 날</span></div>
+      </div>
+      <p class="st-sub">왕벚나무, 수목원 전시원 10곳 평균</p>
+      <div class="tl" aria-hidden="true">
+        <div class="tl-track" id="tl-track">
+          <i class="tl-bloom" id="tl-bloom"></i>
+        </div>
+        <div class="tl-ticks" id="tl-ticks"></div>
+        <div class="tl-legend"><span><i class="k1"></i>꽃이 피어 있던 기간</span><span><i class="k2"></i>축제 기간(4월 3일~11일로 고정)</span></div>
+      </div>
+      <div class="strip">
+        <div class="strip-head"><span>해마다 축제 기간에 꽃이 핀 날</span><button class="ctl" id="st-ctl" type="button" data-state="play" aria-label="재생"><span class="ctl-stack" aria-hidden="true">
+          <span class="s-pause"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="5" y="4" width="3.5" height="12" rx="1"/><rect x="11.5" y="4" width="3.5" height="12" rx="1"/></svg>일시정지</span>
+          <span class="s-play"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 4.5v11a1 1 0 0 0 1.5.86l9-5.5a1 1 0 0 0 0-1.72l-9-5.5A1 1 0 0 0 6 4.5z"/></svg>재생</span>
+          <span class="s-again"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10a6 6 0 1 0 1.8-4.3M4 4v3.5h3.5"/></svg>다시 보기</span>
+        </span></button></div>
+        <div class="strip-bars" id="strip-bars" role="group" aria-label="연도 고르기"></div>
+        <div class="strip-years" id="strip-years" aria-hidden="true"></div>
+      </div>
+      <figcaption class="sr" id="st-cap"></figcaption>
+    </figure>
+    </div>
+  </div>
+</section>
+
+<section class="soft">
+  <div class="wrap">
+    <div class="sec-head r">
+      <h2>17년 기록에서 알아낸 세 가지</h2>
+      <p>같은 자료로 장기 추세를 다룬 연구는 이미 있습니다. 우리는 해마다 얼마나 흔들리는지에 집중했고, 축제를 정하는 사람에게 쓸모 있는 답을 찾았습니다.</p>
+    </div>
+    <div class="cards find-cards">
+      <a class="card r" style="--i:1" href="findings.html#f1"><span class="big">50%</span><h3>흔들림의 절반은 "어느 해냐"가 정합니다</h3><p>모든 수목원이 같은 해에 함께 빨라지거나 늦어집니다. 지역 사이의 차이는 확인되지 않았습니다.</p><span class="more">자세히 보기</span></a>
+      <a class="card r" style="--i:2" href="findings.html#f2"><span class="big">5일<small>대</small> 7일</span><h3>늦게 피는 종일수록 안정적입니다</h3><p>5월에 피는 아까시나무는 해마다 5일 안팎, 3월에 피는 생강나무는 7일 넘게 흔들립니다.</p><span class="more">자세히 보기</span></a>
+      <a class="card r" style="--i:3" href="findings.html#f3"><span class="big">88%<small>대</small> 79%</span><h3>날짜가 고정된 축제엔 오래 피는 꽃</h3><p>날짜를 미리 하루로 정했을 때 꽃이 피어 있던 해의 비율. 개나리가 왕벚나무보다 높습니다.</p><span class="more">자세히 보기</span></a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap split">
+    <div class="r">
+      <h2>예상일, 축제 기간, 맞는 수종을 한 화면에서</h2>
+      <p class="lead" style="margin-top:1rem">수목원을 고르면 올해 예상 개화일과 범위, 정한 축제 기간이 지난 해에 몇 번 꽃과 겹쳤는지, 그 기간에 가장 잘 맞는 나무가 무엇인지 보여 줍니다.</p>
+      <div class="btns"><a class="btn btn--solid" href="tool.html">예시 화면 보기</a></div>
+    </div>
+    <a class="mini-app r" style="--i:1" href="tool.html" aria-label="개화일 예측 예시 화면 보기">
+      <div class="mini-bar"><b>Season Window</b><span>개화일 예측</span><span class="chip">국립수목원</span></div>
+      <div class="mini-body">
+        <div class="mini-tabs" aria-hidden="true"><span class="on">개화일 예측</span><span>축제 기간</span><span>수종 추천</span></div>
+        <p class="muted" style="margin:0 0 .5rem;font-size:.875rem">왕벚나무 2027년 예상 개화시작</p>
+        <div class="mini-date">4월 16일</div>
+        <p class="muted" style="margin:.5rem 0 0;font-size:.875rem">80% 범위 4월 6일~4월 25일, 평균보다 3.7일 빠름</p>
+        <div class="mini-range" aria-hidden="true"><i class="rg m gx" style="left:22.5%;width:53.1%;transform-origin:49.2% 50%"></i><i class="mean m" style="left:59.2%;--i:2"></i><i class="pt m pop" style="left:48.9%"></i></div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="r">
+      <h2>두 기관의 공개 자료로 만들었습니다</h2>
+      <p class="muted" style="margin-top:1rem;max-width:36rem">국립수목원 식물계절 관측자료와 기상청 종관기상관측 일자료를 내려받아 직접 정제하고, 예측은 한 해씩 떼어 두고 맞히는 방식으로 검증했습니다.</p>
+      <ul class="stats"><li><b>61,309건</b><span>식물계절 관측 기록</span></li><li><b>30개 지점</b><span>기상 관측소 일자료</span></li><li><b>6가지</b><span>자료 개선 제안</span></li></ul>
+    </div>
+    <div class="btns r" style="justify-content:flex-start;--i:1"><a class="btn btn--line" href="data.html">데이터와 방법 보기</a></div>
+  </div>
+</section>
+</main>
+<footer class="site-foot">
+  <div class="wrap cols">
+    <div>
+      <h2>Season Window</h2>
+      <p>국립수목원 식물계절 관측자료로 봄꽃의 해마다 달라지는 개화를 분석하고, 축제 기간을 정하는 도구를 만든 머신러닝 팀 프로젝트(3인)입니다. 산림청 산림공공데이터 활용사례 공모 출품작.</p>
+    </div>
+    <div>
+      <h2>둘러보기</h2>
+      <ul><li><a href="index.html">처음</a></li><li><a href="findings.html">알아낸 것</a></li><li><a href="tool.html">만든 것</a></li><li><a href="data.html">데이터와 방법</a></li><li><a href="https://github.com/LEE-SEUNG-YEOB/season-window">분석 코드(GitHub)</a></li></ul>
+    </div>
+    <div>
+      <h2>자료 출처</h2>
+      <p>국립수목원 식물계절관측 프로젝트(<a href="https://knpn.nature.go.kr">knpn.nature.go.kr</a>) 관측자료 2009~2025년, 기상청 기상자료개방포털(<a href="https://data.kma.go.kr">data.kma.go.kr</a>) 종관기상관측 일자료. 관측자료의 저작권은 관측한 시민과학자와 국립수목원에 있으며, 이 사이트에는 집계한 결과만 싣습니다.</p>
+    </div>
+  </div>
+</footer>
+<script src="assets/site.js"></script>
+<script>
+(() => {
+  const Y = [{"y": 2010, "s": 102.2, "e": 114.6}, {"y": 2011, "s": 101.4, "e": 117.5}, {"y": 2012, "s": 102.2, "e": 115.5}, {"y": 2013, "s": 95.8, "e": 110.3}, {"y": 2014, "s": 91.2, "e": 105.4}, {"y": 2015, "s": 94.3, "e": 107.8}, {"y": 2016, "s": 92.8, "e": 105.7}, {"y": 2017, "s": 94.0, "e": 108.4}, {"y": 2018, "s": 92.9, "e": 104.4}, {"y": 2019, "s": 94.6, "e": 109.0}, {"y": 2020, "s": 89.8, "e": 110.2}, {"y": 2021, "s": 83.1, "e": 100.9}, {"y": 2022, "s": 92.4, "e": 106.2}, {"y": 2023, "s": 86.3, "e": 99.8}, {"y": 2024, "s": 92.1, "e": 105.6}, {"y": 2025, "s": 92.2, "e": 107.9}], FS = 93, FE = 101, LO = 76, HI = 124;
+  const { el, md, reduce } = SW;
+  const pctNum = d => (d - LO) / (HI - LO) * 100;
+  const track = document.getElementById('tl-track'), bloom = document.getElementById('tl-bloom');
+  [[80,'3월 21일'],[91,'4월 1일'],[101,'4월 11일'],[111,'4월 21일'],[121,'5월 1일']].forEach(([d,l]) => {
+    const g = el('i','tl-grid'); g.style.left = pctNum(d) + '%'; track.append(g);
+    const s = el('span', null, l); s.style.left = pctNum(d) + '%'; document.getElementById('tl-ticks').append(s);
+  });
+  const fest = el('div','tl-fest'); fest.style.left = pctNum(FS - .5) + '%'; fest.style.width = (pctNum(FE + .5) - pctNum(FS - .5)) + '%';
+  fest.append(el('span','tl-fest-label','축제 9일')); track.append(fest);
+  const days = Y.map(r => { const s = Math.round(r.s), e = Math.round(r.e); return Math.max(0, Math.min(e, FE) - Math.max(s, FS) + 1); });
+  const bars = document.getElementById('strip-bars'), yrs = document.getElementById('strip-years');
+  const btns = Y.map((r, i) => {
+    const b = el('button'); b.type = 'button'; b.setAttribute('aria-label', `${r.y}년: 축제 9일 중 꽃이 핀 날 ${days[i]}일`);
+    b.style.setProperty('--h', Math.max(8, days[i] / 9 * 100) + '%'); if (!days[i]) b.classList.add('zero');
+    b.append(el('i')); b.addEventListener('click', () => { stop(); show(i); }); bars.append(b);
+    yrs.append(el('span', null, (r.y % 5 === 0) ? String(r.y) : ''));
+    return b;
+  });
+  const yearEl = document.getElementById('st-year'), dayEl = document.getElementById('st-days');
+  function show(i){
+    const r = Y[i];
+    bloom.style.setProperty('--l', pctNum(r.s).toFixed(2) + '%'); bloom.style.setProperty('--r', (100 - pctNum(r.e)).toFixed(2) + '%');
+    SW.swap(yearEl, String(r.y)); SW.swap(dayEl, days[i] + '일'); dayEl.classList.toggle('none', !days[i]);
+    btns.forEach((b, j) => { b.classList.toggle('cur', j === i); if (j <= i) b.classList.add('seen'); });
+    cur = i;
+  }
+  const ctl = document.getElementById('st-ctl');
+  const LABEL = { pause:'일시정지', play:'재생', again:'다시 보기' };
+  const setCtl = k => { ctl.dataset.state = k; ctl.setAttribute('aria-label', LABEL[k]); };
+  let cur = 0, timer = null;
+  function stop(){ clearInterval(timer); timer = null; setCtl(cur >= Y.length - 1 ? 'again' : 'play'); }
+  function play(){
+    if (cur >= Y.length - 1) { btns.forEach(b => b.classList.remove('seen')); show(0); }
+    setCtl('pause');
+    timer = setInterval(() => { if (cur >= Y.length - 1) return stop(); show(cur + 1); }, 1100);
+  }
+  ctl.addEventListener('click', () => timer ? stop() : play());
+  const miss = days.filter(d => d === 0).length, full = days.filter(d => d === 9).length;
+  document.getElementById('st-cap').textContent = `2010~2025년 왕벚나무(전시원 10곳 평균)의 꽃 피는 기간과 4월 3일~11일로 고정한 9일 축제를 비교한 그림입니다. 축제 기간에 꽃이 핀 날은 해마다 0일에서 9일까지 달랐고, ${miss}해는 하루도 없었으며 ${full}해는 9일 내내 꽃이 있었습니다. ` + Y.map((r,i) => `${r.y}년 ${days[i]}일`).join(', ');
+  if (reduce) { btns.forEach(b => b.classList.add('seen')); show(Y.length - 1); stop(); }
+  else { show(0); setTimeout(() => { if (!timer && cur === 0) play(); }, 1500); }
+})();
+</script>
+</body>
+</html>
