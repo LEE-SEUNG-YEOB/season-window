@@ -102,11 +102,14 @@ else:
     SLOPE = None
 if SLOPE is None: # 2~3월 평균기온 1도당 일수(전국 공통)는 A의 표 값 사용
     SLOPE = float(table(TABLES / "eda_temp_pooled.csv")["기울기_일per도"].iloc[0])
+# 8단계가 만든 지난 해 기준일 예측 표 읽기
+# 정제본 판이고 파일이 있을 때만 사용
+_R = table(SERVICE / "revision.csv") if FINAL and (SERVICE / "revision.csv").exists() else None
 
 def error(code, message, **extra):
     return {"ok": False, "code": code, "message": message, "source": SOURCE, "warnings": [], **extra}
 
-# 기능 1~3이 예외를 던지지 않게 감싸기
+# 기능 함수가 예외를 던지지 않게 감싸기
 # 예기치 못한 오류는 내부 오류 코드로 반환
 def guard(fn):
     @functools.wraps(fn)
@@ -613,6 +616,50 @@ def ranking(site, start_date, end_date, phenomenon="개화", min_overlap_days=1)
             "end_date": d1.isoformat(), "min_overlap_days": m, "ranking": rank.reset_index(drop=True),
             "excluded": pd.DataFrame(excluded, columns=["종", "사유"]), "n_candidates": len(rank),
             "fit_method": "지난 해 세기" if FINAL else "정규 근사(임시)", "warnings": warnings, "source": SOURCE}
+
+# 기준일 예측 한 줄에서 한쪽 모델의 값을 화면용으로 변환
+def step(r, side, method):
+    year = int(r["연도"])
+    pred, low, high = (float(r[f"{side}_{v}"]) for v in ("예측", "하한", "상한"))
+    return {"method": method, "pred_doy": round(pred, 1), "pred_date": iso(year, pred),
+            "interval": {"level": 0.8, "low_doy": round(low, 1), "high_doy": round(high, 1),
+                         "low_date": iso(year, low), "high_date": iso(year, high)},
+            "error_days": round(abs(pred - float(r["날짜숫자"])), 1)}
+
+# 기능 4 지난 해를 기준일로 되돌린 예측 반환
+# 그해 기준일에 아직 피지 않았던 조합이 대상
+# 기준 모델과 시계 모델(M2)의 예측과 80% 범위와 실제 날짜 반환
+# 두 예측 모두 그 앞 해들의 기록만으로 계산(앞으로 가는 검증)
+@guard
+def revision(site, species, year):
+    site, species = nfc(site), nfc(species)
+    bad = issue(site, "개화", species)
+    if bad:
+        return bad
+    if not integer(year) or not YEAR_LO <= year <= YEAR_HI:
+        return error("BAD_YEAR", f"연도는 {YEAR_LO}~{YEAR_HI} 사이의 정수여야 합니다.")
+    year = int(year)
+    if _R is None or _R.empty:
+        return error("NOT_SUPPORTED", "기준일 예측 표(revision.csv)가 없거나 비어 있어 지난 해를 되돌려 볼 수 없습니다.")
+    q = _R[(_R["수목원"] == site) & (_R["종"] == species)]
+    years = sorted({int(y) for y in q["연도"]})
+    q = q[q["연도"] == year].sort_values("기준일_날짜숫자")
+    if q.empty:
+        h = _Y[(_Y["수목원"] == site) & (_Y["종"] == species) & (_Y["현상"] == MAIN_STAGE["개화"]) & (_Y["연도"] == year)]
+        d = _R.loc[_R["연도"] == year, "기준일_날짜숫자"]
+        early = len(h) > 0 and len(d) > 0 and float(h["날짜숫자"].iloc[0]) <= float(d.max())
+        why = "그해 기준일에는 이미 피어 있었습니다." if early else "그해는 되돌려 볼 예측이 없습니다."
+        can = f"되돌려 볼 수 있는 해: {', '.join(map(str, years))}" if years else "이 조합은 되돌려 볼 수 있는 해가 없습니다."
+        return error("NO_DATA", f"{site} {species} {year}년: {why} {can}", years=years)
+    r = q.iloc[-1] # 채택된 기준일이 여럿이면 가장 늦은 기준일 사용
+    rd, actual = int(r["기준일_날짜숫자"]), float(r["날짜숫자"])
+    return {"ok": True, "site": site, "species": species, "phenomenon": "개화", "stage": MAIN_STAGE["개화"],
+            "year": year, "ref": r["기준일"], "ref_doy": rd, "ref_date": iso(year, rd), "state": r["상태"],
+            "base": step(r, "기준", "기준 모델(최근 5년 보정)"), "revised": step(r, "고친", "시계 모델(M2)"),
+            "actual_doy": actual, "actual_date": iso(year, actual), "years": years,
+            "warnings": ["두 예측 모두 그 앞 해들의 기록만으로 낸 값입니다.",
+                         "기준 모델도 기준일까지 피지 않았다는 사실을 넣은 값입니다."],
+            "source": SOURCE}
 
 # C 화면이 부르는 옛 이름 유지
 list_sites = sites

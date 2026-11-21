@@ -22,9 +22,12 @@ KEYS = {
                          "n_years", "warnings", "source"],
     "ranking": ["ok", "site", "phenomenon", "start_date", "end_date", "min_overlap_days", "n_candidates",
                           "fit_method", "ranking", "excluded", "warnings", "source"],
+    "revision": ["ok", "site", "species", "phenomenon", "stage", "year", "ref", "ref_doy", "ref_date", "state", "base",
+                 "revised", "actual_doy", "actual_date", "years", "warnings", "source"],
 }
 INTERVAL = ["level", "low_doy", "high_doy", "low_date", "high_date"]
 WINDOW = ["start_doy", "start_date", "end_doy", "end_date"]
+STEP = ["method", "pred_doy", "pred_date", "interval", "error_days"]
 HEADLINE = ["value", "basis", "text"]
 BEST = ["start_date", "end_date", "prob"]
 SCENARIO = ["temp_anom", "window", "slope_days_per_degree", "shift_days"]
@@ -357,6 +360,70 @@ def rankingerrors(site):
         fact(isinstance(r.get("excluded"), pd.DataFrame) and len(r["excluded"]) == len(F.SPRING_SPECIES),
               "ranking 후보 없음: excluded")
 
+# 기능 4 점검
+# 표의 줄마다 반환 키와 범위 순서와 표의 값과 기능 1의 실제 날짜 확인
+# 표가 없는 판에서는 오류 코드만 확인
+def revisions(site, sp, au):
+    P = F.revision
+    code(trial(P, "없는곳", sp, 2020), "UNKNOWN_SITE", "revision 없는 곳")
+    code(trial(P, site, "장미", 2020), "UNKNOWN_SPECIES", "revision 없는 종")
+    code(trial(P, site, au, 2020), "UNKNOWN_SPECIES", "revision 단풍 종")
+    for y in (2008, 2031, "2020", True, 2020.0, None):
+        code(trial(P, site, sp, y), "BAD_YEAR", f"revision year={y!r}")
+    path = F.SERVICE / "revision.csv"
+    T = F.table(path) if F.FINAL and path.exists() else None
+    if T is None or T.empty:
+        code(trial(P, site, sp, 2020), "NOT_SUPPORTED", "revision 표 없음")
+        NOTES.append("기준일 예측 표(revision.csv)가 없거나 비어 있어 기능 4는 오류 코드만 본다.")
+        return
+    fact(not T.duplicated(["수목원", "종", "연도", "기준일"]).any(), "revision 표: 같은 줄이 두 번")
+    gain = []
+    for (s, k), g in T.groupby(["수목원", "종"], sort=False):
+        years = sorted(int(y) for y in g["연도"].unique())
+        for y in years:
+            what = f"revision {s} {k} {y}"
+            t = g[g["연도"] == y].sort_values("기준일_날짜숫자").iloc[-1]
+            r = trial(P, s, k, y)
+            if not (fact(isinstance(r, dict) and r.get("ok") is True, f"{what}: ok가 아님") and fields(r, KEYS["revision"], what)):
+                continue
+            rd = r["ref_doy"]
+            fact(r["ref"] == t["기준일"] and rd == int(t["기준일_날짜숫자"]) and r["ref_date"] == iso(y, rd).isoformat()
+                  and r["state"] == t["상태"] and r["years"] == years and r["source"] == F.SOURCE
+                  and isinstance(r["warnings"], list), f"{what}: 기준일이나 상태나 해 목록이 표와 다름")
+            fact(r["actual_doy"] == F.forecast(s, k, year=y)["actual_doy"] == float(t["날짜숫자"]) and r["actual_doy"] > rd,
+                  f"{what}: 실제 날짜가 기능 1과 다르거나 기준일보다 이름")
+            for key, side in (("base", "기준"), ("revised", "고친")):
+                q = r[key]
+                if not (fields(q, STEP, f"{what} {key}") and fields(q["interval"], INTERVAL, f"{what} {key} interval")):
+                    continue
+                iv, want = q["interval"], float(t[f"{side}_예측"])
+                fact(rd < iv["low_doy"] <= q["pred_doy"] <= iv["high_doy"] and iv["level"] == 0.8
+                      and iv["low_date"] <= q["pred_date"] <= iv["high_date"], f"{what} {key}: 범위 순서나 기준일보다 이른 범위")
+                fact(q["pred_doy"] == round(want, 1) and q["error_days"] == round(abs(want - float(t["날짜숫자"])), 1),
+                      f"{what} {key}: 표의 값과 다름")
+            gain.append(r["base"]["error_days"] - r["revised"]["error_days"])
+    fact(len(gain) == len(T.drop_duplicates(["수목원", "종", "연도"])) and sum(gain) > 0,
+          "revision: 채택된 모델인데 평균 오차가 기준 모델보다 작지 않음")
+    s, k = T["수목원"].iloc[0], T["종"].iloc[0]
+    years = sorted(int(y) for y in T.loc[(T["수목원"] == s) & (T["종"] == k), "연도"].unique())
+    r = trial(P, s, k, 2027)
+    code(r, "NO_DATA", "revision 예측이 없는 해")
+    fact(isinstance(r, dict) and r.get("years") == years, "revision 예측이 없는 해: 해 목록")
+    a, b = (unicodedata.normalize("NFD", x) for x in (s, k))
+    r = trial(P, a, b, years[-1])
+    fact(isinstance(r, dict) and r.get("ok") and r["site"] == s and r["species"] == k, "revision 풀린 한글")
+    # 그해 기준일에 이미 핀 조합은 이미 피었다는 안내와 함께 자료 없음 코드 반환
+    ref = T.groupby("연도")["기준일_날짜숫자"].max()
+    H = F._Y[(F._Y["현상"] == F.MAIN_STAGE["개화"]) & F._Y["연도"].isin(ref.index)]
+    H = H[H["날짜숫자"] <= H["연도"].map(ref)]
+    had = set(zip(T["수목원"], T["종"], T["연도"]))
+    H = H[[x not in had for x in zip(H["수목원"], H["종"], H["연도"])]]
+    if len(H):
+        h = H.iloc[0]
+        r = trial(P, h["수목원"], h["종"], int(h["연도"]))
+        code(r, "NO_DATA", "revision 이미 핀 해")
+        fact(isinstance(r, dict) and "이미 피어" in r.get("message", ""), "revision 이미 핀 해: 안내 글")
+
 # 맥에서 복사한 한글(자모가 풀린 꼴)도 같은 이름으로 받는지 확인
 def unicode(site, sp):
     a, b, k, ld = (unicodedata.normalize("NFD", x) for x in (site, sp, "개화", "시나리오"))
@@ -378,7 +445,8 @@ def crash(site, sp):
         raise RuntimeError("점검용 오류")
     for name, fn, args in (("combo", F.forecast, (site, sp)),
                            ("onset", F.overlap, (site, sp, "2027-04-01", 7)),
-                           ("onset", F.ranking, (site, "2027-04-01", "2027-04-07"))):
+                           ("onset", F.ranking, (site, "2027-04-01", "2027-04-07")),
+                           ("issue", F.revision, (site, sp, 2020))):
         saved = getattr(F, name)
         setattr(F, name, boom)
         try:
@@ -438,6 +506,7 @@ def main():
     overlaperrors(site, sp, au)
     rankings()
     rankingerrors(site)
+    revisions(site, sp, au)
     unicode(site, sp)
     crash(site, sp)
     parity()
