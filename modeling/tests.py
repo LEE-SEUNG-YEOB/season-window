@@ -24,6 +24,8 @@ KEYS = {
                           "fit_method", "ranking", "excluded", "warnings", "source"],
     "revision": ["ok", "site", "species", "phenomenon", "stage", "year", "ref", "ref_doy", "ref_date", "state", "base",
                  "revised", "actual_doy", "actual_date", "years", "warnings", "source"],
+    "hindcast": ["ok", "site", "species", "start_date", "days", "min_overlap_days", "years", "track", "summary",
+                 "warnings", "source"],
 }
 INTERVAL = ["level", "low_doy", "high_doy", "low_date", "high_date"]
 WINDOW = ["start_doy", "start_date", "end_doy", "end_date"]
@@ -32,6 +34,10 @@ HEADLINE = ["value", "basis", "text"]
 BEST = ["start_date", "end_date", "prob"]
 SCENARIO = ["temp_anom", "window", "slope_days_per_degree", "shift_days"]
 PAST = ["n_years", "n_overlap", "rate", "years_overlap", "years_miss"]
+VIEW = ["start_date", "end_date", "prob", "headline", "grade", "overlap_days", "hit"]
+TRACK = ["year", "n_prior", "bloom", "best", "last"] + VIEW
+LAST = ["year", "start_date", "end_date", "overlap_days", "hit"]
+TOTAL = ["n_years", "n_overlap", "text"]
 BY_DAYS = ["일수", "확률", "최적기간_확률", "기대겹침일수"]
 BY_START = ["시작일_날짜숫자", "시작일", "확률"]
 RANKING = ["순위", "종", "적합도", "안정성점수", "관측연수", "평균_개화시작", "평균_낙화", "변동폭_표준편차",
@@ -424,6 +430,149 @@ def revisions(site, sp, au):
         code(r, "NO_DATA", "revision 이미 핀 해")
         fact(isinstance(r, dict) and "이미 피어" in r.get("message", ""), "revision 이미 핀 해: 안내 글")
 
+# 그해 앞 값을 서비스 표 자리에 바꿔 넣고 함수를 부른 뒤 되돌림
+def swap(t, fn):
+    y, s, k = int(t["연도"]), t["수목원"], t["종"]
+    saved = {n: getattr(F, n) for n in ("_V", "_H", "_D", "_B", "RECENT5")}
+    own = [{"수목원": s, "종": k, "관측연수": int(t["짝해수"]), "개화기간_중앙값": t["길이"]}] if t["짝해수"] >= F.MIN_YEARS else []
+    F._V = pd.DataFrame([{"수목원": s, "종": k, "현상": "개화시작", "관측연수": int(t["앞해수"]), "평균": t["평균"],
+                          "표준편차": t["표준편차"]}])
+    F._H = pd.DataFrame(own, columns=["수목원", "종", "관측연수", "개화기간_중앙값"])
+    F._D = pd.Series({k: t["길이"]})
+    F._B = saved["_B"][saved["_B"]["연도"] < y]
+    F.RECENT5 = {**saved["RECENT5"], "개화": float(t["최근5년_편차"])}
+    try:
+        return fn()
+    finally:
+        for n, v in saved.items():
+            setattr(F, n, v)
+
+def near(a, b, tol):
+    return (pd.isna(a) and pd.isna(b)) or abs(float(a) - float(b)) < tol
+
+# 기능 5 되돌려 보기 확인
+# 표의 값이 그해 앞 기록만으로 다시 낸 값과 같은지 확인
+# 그해 앞 값을 넣고 부른 기능 2와 같은 답인지 확인
+# 판단 칸을 함수로 다시 모은 값이 9단계 표와 같은지 확인
+# 표가 없는 판에서는 오류 코드만 확인
+def hindcasts(site, sp, au):
+    P = F.hindcast
+    code(trial(P, "없는곳", sp, "2027-04-01", 9), "UNKNOWN_SITE", "hindcast 없는 곳")
+    code(trial(P, site, "장미", "2027-04-01", 9), "UNKNOWN_SPECIES", "hindcast 없는 종")
+    code(trial(P, site, au, "2027-04-01", 9), "UNKNOWN_SPECIES", "hindcast 단풍 종")
+    for d in ("2027-02-30", "abc", None, "2008-12-31", "2031-01-01"):
+        code(trial(P, site, sp, d, 9), "BAD_DATE", f"hindcast start_date={d!r}")
+    for n in (0, 61, 2.5, True, "7", None):
+        code(trial(P, site, sp, "2027-04-01", n), "BAD_DAYS", f"hindcast days={n!r}")
+    for n in (0, 10, 1.5, True):
+        code(trial(P, site, sp, "2027-04-01", 9, n), "BAD_DAYS", f"hindcast min_overlap_days={n!r}")
+    path = F.SERVICE / "hindcast.csv"
+    T = F.table(path) if F.FINAL and path.exists() else None
+    if T is None or T.empty:
+        code(trial(P, site, sp, "2027-04-01", 9), "NOT_SUPPORTED", "hindcast 표 없음")
+        NOTES.append("되돌려 보기 표(hindcast.csv)가 없거나 비어 있어 기능 5는 오류 코드만 본다.")
+        return
+    key = ["수목원", "종"]
+    fact(not T.duplicated(key + ["연도"]).any(), "hindcast 표: 같은 줄이 두 번")
+    Y = F._Y[F._Y["현상"] == "개화시작"]
+    bad = 0
+    for (s, k), g in T.groupby(key, sort=False):
+        h, b = Y[(Y["수목원"] == s) & (Y["종"] == k)], F._B[(F._B["수목원"] == s) & (F._B["종"] == k)]
+        for t in g.to_dict("records"):
+            v, q = h.loc[h["연도"] < t["연도"], "날짜숫자"], b.loc[b["연도"] < t["연도"], "개화기간"]
+            if len(q) < F.MIN_YEARS:
+                q = F._B.loc[(F._B["종"] == k) & (F._B["연도"] < t["연도"]), "개화기간"]
+            bad += not (v.count() == t["앞해수"] and near(v.mean(), t["평균"], 0.0006) and near(v.std(), t["표준편차"], 0.0006)
+                        and b.loc[b["연도"] < t["연도"], "개화기간"].count() == t["짝해수"] and q.median() == t["길이"])
+    fact(bad == 0, f"hindcast 표: 그해 앞 기록만으로 다시 낸 값과 다른 줄 {bad}개")
+    J = T[T["앞해수"] >= F.MIN_YEARS]
+    few = T[~T.set_index(key).index.isin(J.set_index(key).index)]
+    if len(few):
+        r = trial(P, few["수목원"].iloc[0], few["종"].iloc[0], "2027-04-01", 9)
+        code(r, "NO_DATA", "hindcast 앞 해가 모자란 조합")
+        fact(isinstance(r, dict) and r.get("years") == [], "hindcast 앞 해가 모자란 조합: 해 목록")
+    if J.empty:
+        NOTES.append("앞 해가 8해 이상인 줄이 없어 기능 5의 해별 값은 보지 않는다.")
+        return
+    rows = {1: [], 7: []}
+    for (s, k), g in J.groupby(key, sort=False):
+        g = g.sort_values("연도")
+        years, start = [int(y) for y in g["연도"]], iso(2027, int(g["평균"].iloc[-1]))
+        b = F._B[(F._B["수목원"] == s) & (F._B["종"] == k)].set_index("연도")
+
+        # 그해 실제 꽃 시기에 든 날을 하루씩 세기
+        def count(y, text):
+            u = dt.date.fromisoformat(text).timetuple().tm_yday
+            return sum(b.loc[y, "개화시작"] <= d <= b.loc[y, "낙화"] for d in range(u, u + 9))
+
+        for m in rows:
+            what = f"hindcast {s} {k} 겹침 {m}일"
+            r = trial(P, s, k, start, 9, m)
+            if not (fact(isinstance(r, dict) and r.get("ok") is True, f"{what}: ok가 아님") and fields(r, KEYS["hindcast"], what)):
+                continue
+            fact(r["years"] == years and [t.get("year") for t in r["track"]] == years and r["days"] == 9
+                 and r["min_overlap_days"] == m and r["start_date"] == start.isoformat() and r["source"] == F.SOURCE
+                 and isinstance(r["warnings"], list), f"{what}: 해 목록이나 입력 값이 다름")
+            for t, x in zip(r["track"], g.to_dict("records")):
+                y, tag = int(x["연도"]), f"{what} {int(x['연도'])}"
+                if not (fields(t, TRACK, tag) and fields(t["best"], VIEW, f"{tag} best") and fields(t["headline"], HEADLINE, tag)
+                        and fields(t["best"]["headline"], HEADLINE, f"{tag} best")
+                        and (t["last"] is None or fields(t["last"], LAST, f"{tag} last"))):
+                    continue
+                d, prev = dt.date(y, start.month, start.day), [int(z) for z in b.index if z < y]
+                fact(t["n_prior"] == x["앞해수"] and t["start_date"] == d.isoformat()
+                     and t["end_date"] == (d + dt.timedelta(days=8)).isoformat() and 0 <= t["prob"] <= t["best"]["prob"] <= 1
+                     and t["bloom"]["start_date"] <= t["bloom"]["end_date"], f"{tag}: 날짜나 확률 범위")
+                fact(all(v["overlap_days"] == count(y, v["start_date"]) and v["hit"] == (v["overlap_days"] >= m)
+                         for v in (t, t["best"])), f"{tag}: 그해 실제 겹친 날 수")
+                fact(all((v["headline"]["basis"] == "과거 해") == (len(prev) >= F.MIN_YEARS) for v in (t, t["best"])),
+                     f"{tag}: 대표값의 근거")
+                fact((t["last"] is None) == (not prev) and (not prev or (t["last"]["year"] == max(prev)
+                     and t["last"]["overlap_days"] == count(y, t["last"]["start_date"])
+                     and t["last"]["hit"] == (t["last"]["overlap_days"] >= m))), f"{tag}: 작년에 맞춘 기간")
+                o = swap(x, lambda: trial(F.overlap, s, k, d, 9, min_overlap_days=m, max_days=1))
+                same = isinstance(o, dict) and o.get("ok") is True and o["prob"] == t["prob"] and o["headline"] == t["headline"] \
+                    and o["grade"] == t["grade"] and o["best"] == {q: t["best"][q] for q in BEST}
+                o = swap(x, lambda: trial(F.overlap, s, k, t["best"]["start_date"], 9, min_overlap_days=m, max_days=1))
+                fact(same and isinstance(o, dict) and o.get("ok") is True and o["prob"] == t["best"]["prob"]
+                     and o["headline"] == t["best"]["headline"] and o["grade"] == t["best"]["grade"],
+                     f"{tag}: 그해 앞 값을 넣고 부른 기능 2와 다름")
+                e = t["best"]
+                rows[m].append((y, e["prob"], e["hit"], e["headline"]["value"] if e["headline"]["basis"] == "과거 해" else np.nan,
+                                e["overlap_days"], t["last"]["overlap_days"] if t["last"] else np.nan))
+            S = r["summary"]
+            fact(all(fields(S.get(q), TOTAL, f"{what} summary {q}") for q in ("input", "best", "last"))
+                 and S["input"]["n_years"] == S["best"]["n_years"] == len(years)
+                 and S["input"]["n_overlap"] == sum(t["hit"] for t in r["track"])
+                 and S["best"]["n_overlap"] == sum(t["best"]["hit"] for t in r["track"])
+                 and S["last"]["n_years"] == sum(t["last"] is not None for t in r["track"])
+                 and S["last"]["n_overlap"] == sum(t["last"]["hit"] for t in r["track"] if t["last"]), f"{what}: 요약이 해별 값과 다름")
+    a, b = (unicodedata.normalize("NFD", x) for x in (s, k))
+    r = trial(P, a, b, "2027-04-01", 9)
+    fact(isinstance(r, dict) and r.get("ok") and r["site"] == s and r["species"] == k, "hindcast 풀린 한글")
+    paths = [F.TABLES / n for n in ("model_hindcast.csv", "model_hindcast_decision.csv")]
+    if not all(p.exists() for p in paths):
+        NOTES.append("9단계가 쓴 묶음 표(model_hindcast.csv)가 없어 묶은 값 맞춰 보기는 건너뛴다.")
+        return
+    G, D = (F.table(p) for p in paths)
+    G = G[(G["틀"] == "앞 해 8해 이상") & (G["방식"] == "지금 규칙") & (G["묶음"] == "전체") & (G["일수"] == 9)].set_index("겹침기준")
+    for m, got in rows.items():
+        L = pd.DataFrame(got, columns=["연도", "확률", "겹침", "세기", "꽃핀날", "작년"])
+        c, v = L[L["세기"].notna()], L[L["작년"].notna()]
+        by = v.groupby("연도")[["꽃핀날", "작년"]].sum()
+        mine = {"줄수": len(L), "해수": L["연도"].nunique(), "확률_평균": L["확률"].mean(), "실제_비율": L["겹침"].mean(),
+                "세기_줄수": len(c), "세기_평균": c["세기"].mean(), "세기_실제": c["겹침"].mean(), "견준_줄수": len(v),
+                "꽃핀날_최적": v["꽃핀날"].mean(), "꽃핀날_작년": v["작년"].mean(), "이긴_해수": int((by["꽃핀날"] > by["작년"]).sum())}
+        fact(m in G.index and all(near(G.loc[m, q], x, 0.006 if q.startswith("꽃핀날") else 0.0006) for q, x in mine.items()),
+             f"hindcast 묶은 값: 겹침 {m}일 칸이 9단계 표와 다름")
+        d = D[D["겹침기준"] == m].set_index("항목")
+        want = {"식의 확률 대 실제 겹친 비율": ("확률_평균", "실제_비율"), "지난 해 세기 대 실제 겹친 비율": ("세기_평균", "세기_실제")}
+        if m == 1:
+            want["권한 기간 대 작년 꽃 시기에 맞춘 기간(꽃 핀 날 수)"] = ("꽃핀날_최적", "꽃핀날_작년")
+        fact(all(q in d.index and near(d.loc[q, "값"], mine[u], 0.0006) and near(d.loc[q, "견준_값"], mine[w], 0.0006)
+                 for q, (u, w) in want.items()), f"hindcast 판정표: 겹침 {m}일 줄의 값이 함수로 다시 모은 값과 다름")
+    fact(len(D) == 5, "hindcast 판정표: 줄 수가 다섯이 아님")
+
 # 맥에서 복사한 한글(자모가 풀린 꼴)도 같은 이름으로 받는지 확인
 def unicode(site, sp):
     a, b, k, ld = (unicodedata.normalize("NFD", x) for x in (site, sp, "개화", "시나리오"))
@@ -446,7 +595,8 @@ def crash(site, sp):
     for name, fn, args in (("combo", F.forecast, (site, sp)),
                            ("onset", F.overlap, (site, sp, "2027-04-01", 7)),
                            ("onset", F.ranking, (site, "2027-04-01", "2027-04-07")),
-                           ("issue", F.revision, (site, sp, 2020))):
+                           ("issue", F.revision, (site, sp, 2020)),
+                           ("issue", F.hindcast, (site, sp, "2027-04-01", 9))):
         saved = getattr(F, name)
         setattr(F, name, boom)
         try:
@@ -507,6 +657,7 @@ def main():
     rankings()
     rankingerrors(site)
     revisions(site, sp, au)
+    hindcasts(site, sp, au)
     unicode(site, sp)
     crash(site, sp)
     parity()

@@ -105,6 +105,9 @@ if SLOPE is None: # 2~3월 평균기온 1도당 일수(전국 공통)는 A의 �
 # 8단계가 만든 지난 해 기준일 예측 표 읽기
 # 정제본 판이고 파일이 있을 때만 사용
 _R = table(SERVICE / "revision.csv") if FINAL and (SERVICE / "revision.csv").exists() else None
+# 9단계가 만든 그해 앞 값 표 읽기
+# 정제본 판이고 파일이 있을 때만 사용
+_P = table(SERVICE / "hindcast.csv") if FINAL and (SERVICE / "hindcast.csv").exists() else None
 
 def error(code, message, **extra):
     return {"ok": False, "code": code, "message": message, "source": SOURCE, "warnings": [], **extra}
@@ -660,6 +663,98 @@ def revision(site, species, year):
             "warnings": ["두 예측 모두 그 앞 해들의 기록만으로 낸 값입니다.",
                          "기준 모델도 기준일까지 피지 않았다는 사실을 넣은 값입니다."],
             "source": SOURCE}
+
+# 기간이 꽃 시기와 겹친 날 수 계산
+def bloom(s, days, on, off):
+    lo, hi = max(s, math.ceil(on)), min(s + days - 1, math.floor(off))
+    return max(0, hi - lo + 1)
+
+# 겹칠 확률이 가장 높은 시작 날짜숫자와 그 확률 반환
+# 찾는 범위와 고르는 순서는 기능 2와 같음
+def peak(mu, sd, length, days, m):
+    starts = list(range(max(1, int(mu) - 45), int(mu) + 46))
+    probs = [chance(mu, sd, length, s, days, m) for s in starts]
+    k = max(range(len(starts)), key=lambda i: probs[i])
+    return starts[k], probs[k]
+
+# 기능 5 지난 해마다 그해 앞 기록만으로 기능 2를 다시 돌린 값과 실제 반환
+# 앞 해가 8해 이상인 해가 대상
+# 입력한 기간과 그해 가장 좋은 기간과 작년 꽃 시기에 맞춘 기간을 그해 실제 꽃 시기와 견줌
+# 조합 하나는 해 수가 적어 비율이 아니라 센 값으로 반환
+@guard
+def hindcast(site, species, start_date, days, min_overlap_days=1):
+    site, species = nfc(site), nfc(species)
+    bad = issue(site, "개화", species)
+    if bad:
+        return bad
+    try:
+        d0 = day(start_date)
+    except (ValueError, TypeError):
+        return error("BAD_DATE", "축제 시작일은 날짜이거나 'YYYY-MM-DD' 형식의 글자여야 합니다.")
+    if not YEAR_LO <= d0.year <= YEAR_HI:
+        return error("BAD_DATE", f"축제 시작일의 연도는 {YEAR_LO}~{YEAR_HI} 사이여야 합니다.")
+    if not integer(days) or not 1 <= days <= 60:
+        return error("BAD_DAYS", "축제 일수는 1~60 사이의 정수여야 합니다.")
+    if not integer(min_overlap_days) or not 1 <= min_overlap_days <= days:
+        return error("BAD_DAYS", "겹침 기준 일수는 1 이상이고 축제 일수 이하인 정수여야 합니다.")
+    days, m = int(days), int(min_overlap_days)
+    if _P is None or _P.empty:
+        return error("NOT_SUPPORTED", "되돌려 보기 표(hindcast.csv)가 없거나 비어 있어 지난 해를 되돌려 볼 수 없습니다.")
+    T = _P[(_P["수목원"] == site) & (_P["종"] == species) & (_P["앞해수"] >= MIN_YEARS)].sort_values("연도")
+    if T.empty:
+        return error("NO_DATA", f"{site} {species}는 앞선 기록이 {MIN_YEARS}해 이상인 해가 없어 되돌려 볼 수 없습니다.", years=[])
+    P = _B[(_B["수목원"] == site) & (_B["종"] == species)]
+    own = {int(y): (float(on), float(off)) for y, on, off in zip(P["연도"], P["개화시작"], P["낙화"])}
+    use = USE_M0R.get("개화", False)
+
+    # 그해 s일에 시작하는 기간이 말한 값과 그해 실제 겹친 날 수 반환
+    # 말한 값은 앞선 짝 기록이 8해 이상이면 지난 해 세기이고 아니면 식의 확률
+    def view(y, s, prob):
+        d = dt.date(y, 1, 1) + dt.timedelta(days=s - 1)
+        before = [k for k in own if k < y]
+        yes = [k for k in before if bloom(yearday(k, d), days, *own[k]) >= m]
+        head = {"value": round(prob, 3), "basis": "분포", "text": f"겹칠 확률 {percent(prob)}"}
+        if len(before) >= MIN_YEARS:
+            head = {"value": round(len(yes) / len(before), 3), "basis": "과거 해",
+                    "text": f"{len(before)}해 중 {len(yes)}해 겹침"}
+        got = bloom(s, days, *own[y])
+        return {"start_date": iso(y, s), "end_date": iso(y, s + days - 1), "prob": round(prob, 3), "headline": head,
+                "grade": grade(head["value"]), "overlap_days": got, "hit": got >= m}
+
+    def total(rows):
+        yes = sum(1 for x in rows if x["hit"])
+        return {"n_years": len(rows), "n_overlap": yes, "text": f"{len(rows)}해 중 {yes}해 겹침"}
+
+    track = []
+    for r in T.to_dict("records"):
+        y, n = int(r["연도"]), int(r["앞해수"])
+        mu = float(r["평균"]) + (float(r["최근5년_편차"]) if use else 0.0)
+        sd, length = float(r["표준편차"]) * math.sqrt(1 + 1 / n), float(r["길이"])
+        s = yearday(y, d0)
+        top, best = peak(mu, sd, length, days, m)
+        row = {"year": y, "n_prior": n, **view(y, s, chance(mu, sd, length, s, days, m)),
+               "bloom": {"start_date": iso(y, own[y][0]), "end_date": iso(y, own[y][1])},
+               "best": view(y, top, best), "last": None}
+        prev = [k for k in own if k < y]
+        if prev:
+            # 가장 가까운 앞 해의 꽃 시기 한가운데에 맞춘 기간을 달과 날로 그해에 옮김
+            on, off = own[max(prev)]
+            mid = dt.date(max(prev), 1, 1) + dt.timedelta(days=math.floor((on + off) / 2 - (days - 1) / 2 + 0.5) - 1)
+            s = yearday(y, mid)
+            got = bloom(s, days, *own[y])
+            row["last"] = {"year": max(prev), "start_date": iso(y, s), "end_date": iso(y, s + days - 1),
+                           "overlap_days": got, "hit": got >= m}
+        track.append(row)
+    warnings = ["해마다 그해 앞까지의 기록만으로 다시 계산한 값입니다.",
+                "조합 하나는 해 수가 적어 센 값으로만 보여 줍니다. 검증된 확률이 아닙니다."]
+    if use:
+        warnings.append("확률과 가장 좋은 기간에는 그해 앞까지의 전국 최근 5년 편차를 넣었고 지난 해 세기에는 넣지 않았습니다.")
+        warnings.append(f"최근 5년 편차를 쓰기로 한 결정은 {LAST_YEAR}년까지의 기록으로 내렸고 이 결정까지 되돌린 것은 아닙니다.")
+    return {"ok": True, "site": site, "species": species, "start_date": d0.isoformat(), "days": days,
+            "min_overlap_days": m, "years": [t["year"] for t in track], "track": track,
+            "summary": {"input": total(track), "best": total([t["best"] for t in track]),
+                        "last": total([t["last"] for t in track if t["last"]])},
+            "warnings": warnings, "source": SOURCE}
 
 # C 화면이 부르는 옛 이름 유지
 list_sites = sites
