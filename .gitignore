@@ -48,6 +48,9 @@ desktop.ini
 *내부시연*.html
 데이터_조사결과.json
 
+# 수업 시연판: 해별 날짜가 든 자료 파일이 있어 폴더째 막는다 (화면 예시는 reports/demo/)
+/demo/
+
 # 배포와 영상 작업 부산물
 .vercel/
 node_modules/
