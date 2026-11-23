@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="assets/site.css">
 <style>
-.toc{list-style:none;margin:2rem 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:.75rem}
+.toc{list-style:none;margin:2rem 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));gap:.75rem}
 .toc li{height:100%}
 .toc a{display:block;height:100%;padding:1rem 1.125rem;border:1px solid transparent;box-shadow:var(--shadow-border);border-radius:var(--r-md);text-decoration:none;color:var(--ink);font-weight:600;font-size:.9375rem;line-height:1.45;transition-property:box-shadow,background-color,scale;transition-duration:150ms;transition-timing-function:ease-out}
 .toc a:active{scale:.96}
@@ -62,6 +62,14 @@ figcaption.note{margin-top:1rem}
 .dots.pair .row{grid-template-columns:10rem 3.75rem minmax(0,1fr) 3.5rem}
 .sw-worse{width:.7rem;height:.7rem;border-radius:50%;border:2px solid var(--ink-2);display:inline-block}
 .dots .val.good{color:var(--g700)}
+.nd{display:block;width:100%;overflow:visible;margin-top:.5rem}
+.nd text{font-family:var(--font);font-size:12px;fill:var(--ink-2)}
+.nd .lbl{font-size:12.5px;font-weight:700;fill:var(--ink)}
+.nd .hit{fill:transparent}
+.nd .hit:hover + .dot-h{opacity:1}
+.sw-line{width:1.25rem;height:3px;border-radius:2px;background:var(--g700);display:inline-block}
+.sw-band{width:1.25rem;height:.75rem;border-radius:3px;background:var(--g200);display:inline-block}
+.sw-ref{width:1.25rem;height:0;border-top:2px dashed var(--ink-2);display:inline-block}
 @media (max-width:40rem){
   .seg{display:grid;grid-template-columns:1fr 1fr;border-radius:14px;width:100%}
   .seg-ind{border-radius:10px;clip-path:inset(0 var(--r,50%) 0 var(--l,0px) round 10px)}
@@ -88,7 +96,8 @@ figcaption.note{margin-top:1rem}
       <li class="e" style="--i:5"><a href="#f1"><span>어느 해냐</span>흔들림의 절반은 전국이 함께 움직입니다</a></li>
       <li class="e" style="--i:6"><a href="#f2"><span>어떤 종이냐</span>늦게 피는 종일수록 안정적입니다</a></li>
       <li class="e" style="--i:7"><a href="#f3"><span>고정된 날짜</span>오래 피는 종이 더 잘 맞습니다</a></li>
-      <li class="e" style="--i:8"><a href="#f4"><span>먼저 핀 꽃</span>가까운 종의 개화를 알려 줍니다</a></li>
+      <li class="e" style="--i:8"><a href="#days"><span>축제 일수</span>열 번에 여덟 번 만나려면 11일</a></li>
+      <li class="e" style="--i:9"><a href="#f4"><span>먼저 핀 꽃</span>가까운 종의 개화를 알려 줍니다</a></li>
     </ul>
   </div>
 </section>
@@ -161,7 +170,26 @@ figcaption.note{margin-top:1rem}
   </div>
 </section>
 
-<section id="f4" class="soft">
+<section id="days" class="soft">
+  <div class="wrap fd flip">
+    <div class="txt r">
+      <h2>축제는 며칠이면 충분할까</h2>
+      <p>지난 9해(2017~2025년) 동안 해마다 그 앞 해 기록만으로 가장 좋은 축제 기간을 골랐다면 실제로 꽃과 얼마나 만났을지 되돌려 봤습니다. 84개 조합에서 406번입니다.</p>
+      <p>9일 축제는 가장 좋은 때에 잡아도 꽃과 7일 이상 겹친 경우가 75%였습니다. 열 번에 여덟 번을 넘기려면 11일, 95% 구간의 아래쪽 값까지 80%를 넘기려면 14일이 필요했습니다.</p>
+      <ul class="stats"><li><b>75%</b><span>9일 축제, 7일 이상 겹침</span></li><li><b>11일</b><span>열 번에 여덟 번</span></li><li><b>14일</b><span>보수적으로 잡으면</span></li></ul>
+    </div>
+    <figure class="chart-box r" style="--i:1" aria-labelledby="nd-cap">
+      <p class="chart-title">축제 일수별로 꽃과 7일 이상 겹친 비율</p>
+      <p class="chart-sub">해마다 그 앞 해 기록만으로 고른 가장 좋은 기간을 그해 실제 꽃 시기와 견준 값입니다.</p>
+      <div class="legend" aria-hidden="true"><span><i class="sw-line"></i>실제로 겹친 비율</span><span><i class="sw-band"></i>95% 구간</span><span><i class="sw-ref"></i>80%</span></div>
+      <svg id="nd" class="nd" role="img" aria-labelledby="nd-cap"></svg>
+      <figcaption class="note" id="nd-cap">축제 7일이면 70%, 9일 75%, 11일 83%, 14일 88%, 21일 97%였습니다. 95% 구간은 해를 묶어 다시 뽑아 낸 값이고, 해가 9개뿐이라 실제보다 좁을 수 있습니다.</figcaption>
+      <details><summary>표로 보기</summary><div class="tbl"><table id="nd-table"></table></div></details>
+    </figure>
+  </div>
+</section>
+
+<section id="f4">
   <div class="wrap fd flip">
     <div class="txt r">
       <h2>먼저 핀 꽃은 가까운 시기에 피는 꽃의 단서가 됩니다</h2>
@@ -179,7 +207,7 @@ figcaption.note{margin-top:1rem}
   </div>
 </section>
 
-<section id="trend">
+<section id="trend" class="soft">
   <div class="wrap fd">
     <div class="txt r">
       <h2>장기 추세는 기존 연구와 같은 방향입니다</h2>
@@ -314,6 +342,47 @@ document.getElementById('species-table').innerHTML = '<thead><tr><th>종</th><th
   });
   document.getElementById('gap-table').innerHTML = '<thead><tr><th>먼저 핀 종 → 맞힐 종</th><th class="n">평균 간격</th><th class="n">평균으로</th><th class="n">먼저 핀 종으로</th></tr></thead><tbody>' +
     GAPS.map(([a,b,g,m,p]) => `<tr><td>${a} → ${b}</td><td class="n">${f1(g)}일</td><td class="n">${m.toFixed(2)}일</td><td class="n">${p.toFixed(2)}일</td></tr>`).join('') + '</tbody>';
+})();
+
+/* 축제 일수별 7일 이상 겹친 비율 */
+(() => {
+  const N = {"days": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30], "rate": [0.7, 0.729, 0.751, 0.796, 0.825, 0.85, 0.865, 0.882, 0.906, 0.926, 0.938, 0.948, 0.958, 0.966, 0.968, 0.973, 0.975, 0.978, 0.983, 0.988, 0.99, 0.995, 0.995, 0.995], "lo": [0.592, 0.624, 0.645, 0.717, 0.743, 0.772, 0.795, 0.825, 0.863, 0.887, 0.902, 0.915, 0.932, 0.939, 0.943, 0.951, 0.954, 0.961, 0.971, 0.978, 0.98, 0.99, 0.99, 0.99], "hi": [0.803, 0.831, 0.856, 0.879, 0.91, 0.927, 0.933, 0.937, 0.95, 0.962, 0.972, 0.978, 0.983, 0.987, 0.988, 0.992, 0.994, 0.994, 0.995, 1.0, 1.0, 1.0, 1.0, 1.0], "n": 406, "years": 9, "combos": 84}, svg = document.getElementById('nd');
+  const tbl = document.getElementById('nd-table');
+  tbl.innerHTML = '<thead><tr><th class="n">축제 일수</th><th class="n">실제로 겹친 비율</th><th class="n">95% 구간</th></tr></thead><tbody>' +
+    N.days.map((d, i) => `<tr><td class="n">${d}일</td><td class="n">${Math.round(N.rate[i] * 100)}%</td><td class="n">${Math.round(N.lo[i] * 100)}~${Math.round(N.hi[i] * 100)}%</td></tr>`).join('') + '</tbody>';
+  const D = N.days.map((d, i) => ({ d, r: N.rate[i], lo: N.lo[i], hi: N.hi[i] })).filter(p => p.d >= 7);
+  function draw(){
+    const W = svg.getBoundingClientRect().width; if (!W) return;
+    const H = W < 480 ? 230 : 280, m = { l: 40, r: 14, t: 28, b: 30 };
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H);
+    const x = d => m.l + (d - 7) / 23 * (W - m.l - m.r), y = v => m.t + (1 - (v - .5) / .5) * (H - m.t - m.b);
+    let s = '';
+    [.5, .6, .7, .8, .9, 1].forEach(v => s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="#ebf2ed"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`);
+    (W < 480 ? [7, 14, 21, 30] : [7, 9, 11, 14, 21, 30]).forEach(d => s += `<text x="${x(d)}" y="${H - 8}" text-anchor="middle">${d}일</text>`);
+    const band = D.map(p => `${x(p.d).toFixed(1)},${y(p.hi).toFixed(1)}`).join(' ') + ' ' + [...D].reverse().map(p => `${x(p.d).toFixed(1)},${y(p.lo).toFixed(1)}`).join(' ');
+    s += `<polygon points="${band}" fill="#c9ead6" opacity=".7" class="m"/>`;
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(.8)}" y2="${y(.8)}" stroke="#4b5e53" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    s += `<polyline id="nd-line" points="${D.map(p => `${x(p.d).toFixed(1)},${y(p.r).toFixed(1)}`).join(' ')}" fill="none" stroke="#14703f" stroke-width="2.5" stroke-linejoin="round"/>`;
+    [[9, '9일 75%', 'start', 20], [11, '11일 83%', 'end', -12], [14, '14일 88%', 'start', 20]].forEach(([d, t, a, dy]) => {
+      const p = D.find(q => q.d === d), dx = a === 'end' ? -8 : 8;
+      if (W < 480 && d === 11) { s += `<circle cx="${x(d)}" cy="${y(p.r)}" r="4" fill="#14703f" stroke="#fff" stroke-width="2"/>`; return; }
+      s += `<circle cx="${x(d)}" cy="${y(p.r)}" r="5" fill="#14703f" stroke="#fff" stroke-width="2"/>`;
+      s += `<text class="lbl" x="${x(d) + dx}" y="${y(p.r) + dy}" text-anchor="${a}">${t}</text>`;
+    });
+    D.forEach((p, i) => {
+      const w = (W - m.l - m.r) / 23;
+      s += `<rect class="hit" x="${x(p.d) - w / 2}" y="${m.t}" width="${w}" height="${H - m.t - m.b}"><title>${p.d}일: ${Math.round(p.r * 100)}% (95% ${Math.round(p.lo * 100)}~${Math.round(p.hi * 100)}%)</title></rect>`;
+    });
+    svg.innerHTML = s;
+  }
+  draw(); window.addEventListener('resize', draw);
+  // 처음 화면에 들어올 때 선이 한 번 그려짐
+  const box = svg.closest('.r');
+  box && box.addEventListener('revealed', () => {
+    const l = document.getElementById('nd-line'); if (!l || SW.reduce) return;
+    const L = l.getTotalLength(); l.style.strokeDasharray = L;
+    l.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 700, easing: 'cubic-bezier(0.2,0,0,1)' }).onfinish = () => l.style.strokeDasharray = '';
+  }, { once: true });
 })();
 </script>
 </body>

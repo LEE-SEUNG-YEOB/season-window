@@ -92,6 +92,8 @@ input[type=range]{flex:1;accent-color:var(--g700);height:2.75rem;cursor:pointer}
 .feat h3{font-size:1.0625rem;margin-bottom:.5rem}
 .feat p{color:var(--ink-2);font-size:.9375rem;margin:0}
 .verdict{font-weight:700}
+.stats b small{font-size:1rem;font-weight:650;color:var(--ink-2);letter-spacing:0}
+#vt th:last-child,#vt td:last-child{padding-left:1.5rem}
 .verdict.yes{color:var(--g700)}
 @media (max-width:40rem){
   .app-top{padding:.75rem 1rem}
@@ -179,17 +181,27 @@ input[type=range]{flex:1;accent-color:var(--g700);height:2.75rem;cursor:pointer}
       <p>랜덤포레스트를 포함한 네 가지 방법을 연도 단위로 검증했고, 채택 규칙(기준보다 평균 오차가 0.5일 이상 작고 대부분의 해에서 나을 것)은 결과를 보기 전에 정했습니다. 2월 말까지 알 수 있는 기상으로는 과거 평균보다 뚜렷이 나아지지 않았습니다.</p>
     </div>
     <div class="tbl r" style="max-width:56rem;--i:1">
-      <table>
+      <table id="vt">
         <thead><tr><th>방법</th><th>검증 방식</th><th class="n">평균 오차</th><th class="n">기준</th><th>판정</th></tr></thead>
         <tbody>
           <tr><td>2월 기온 직선 모델</td><td>한 해씩 떼어 두기</td><td class="n">4.95일</td><td class="n">5.18일</td><td class="verdict">기각</td></tr>
           <tr><td>랜덤포레스트 (2월 말까지의 기상 6개)</td><td>한 해씩 떼어 두기</td><td class="n">5.02일</td><td class="n">5.18일</td><td class="verdict">기각</td></tr>
           <tr><td>과거 평균 + 최근 5년 경향</td><td>앞으로 가는 검증</td><td class="n">4.75일</td><td class="n">5.45일</td><td class="verdict yes">채택</td></tr>
           <tr><td>참고: 3월 말 기온까지 안다면</td><td>한 해씩 떼어 두기</td><td class="n">3.94일</td><td class="n">5.21일</td><td>가정 입력으로 제공</td></tr>
+          <tr><td>4월 15일로 되돌려 본 예측(시계 모델)</td><td>앞으로 가는 검증</td><td class="n">2.74일</td><td class="n">3.76일</td><td>지난 해 검증에만 사용</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note" style="max-width:56rem">기준은 과거 평균만으로 맞힌 오차입니다. "앞으로 가는 검증"은 2015~2025년 각 해를 그 이전 해만으로 맞힌 결과이고, 11해 중 9해에서 기준보다 나았습니다.</p>
+    <p class="note" style="max-width:56rem">기준은 과거 평균만으로 맞힌 오차입니다. "앞으로 가는 검증"은 2015~2025년 각 해를 그 이전 해만으로 맞힌 결과입니다. 4월 15일 예측은 그날 아직 피지 않은 267건만 견줬고, 그해 기온과 그해 먼저 기록된 관측이 필요해 앞으로의 해에는 쓰지 않습니다.</p>
+    <div class="sec-head r" style="margin-top:4rem;margin-bottom:1.5rem">
+      <h2>축제 기간 설계의 답도 지난 해로 맞춰 봤습니다</h2>
+      <p>지난 9해(2017~2025년) 동안 해마다 그 앞 해 기록만으로 축제 기간 설계를 다시 돌리고, 그해 실제 꽃 시기와 견줬습니다(84개 조합, 406번). 도구가 말한 확률은 실제보다 높지 않았습니다.</p>
+    </div>
+    <ul class="stats r" style="--i:1">
+      <li><b>94.5%<small> 대 </small>96.8%</b><span>9일 축제, 하루 이상 겹칠 확률(말한 값 대 실제)</span></li>
+      <li><b>73.8%<small> 대 </small>75.1%</b><span>9일 축제, 7일 이상 겹칠 확률(말한 값 대 실제)</span></li>
+    </ul>
+    <p class="note" style="max-width:56rem">"과신하지 않았다"는 뜻이지 꼭 맞는다는 뜻은 아닙니다. 2021년에는 7일 이상 겹친다고 76%를 말했는데 실제는 48%였습니다.</p>
   </div>
 </section>
 </main>
